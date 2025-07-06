@@ -602,7 +602,7 @@ export function RotacionDeportiva() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-4 md:p-8">
       <main className="container mx-auto">
         <header className="text-center mb-8">
-            <h1 className="font-headline font-bold text-5xl md:text-6xl text-sky-400 flex items-center justify-center gap-4"><Flame /> Rotación Deportiva</h1>
+            <h1 className="font-headline font-bold text-5xl md:text-6xl text-sky-400 flex items-center justify-center gap-4"><Flame /> Court Commander</h1>
             <p className="text-slate-400 mt-2">Gestión de equipos para partidos amistosos</p>
         </header>
 
