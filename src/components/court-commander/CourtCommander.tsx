@@ -128,13 +128,22 @@ export function RotacionDeportiva() {
   const handleRemovePlayer = (id: string) => {
     setPlayers(p => p.filter(player => player.id !== id));
     setWaitingListIds(ids => ids.filter(playerId => playerId !== id));
-    setTeamA(t => ({ ...t, players: t.players.filter(p => p.id !== id) }));
-    setTeamB(t => ({ ...t, players: t.players.filter(p => p.id !== id) }));
+    setTeamA(t => {
+      const newPlayers = t.players.filter(p => p.id !== id);
+      const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo A';
+      return { ...t, players: newPlayers, name: newName };
+    });
+    setTeamB(t => {
+      const newPlayers = t.players.filter(p => p.id !== id);
+      const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo B';
+      return { ...t, players: newPlayers, name: newName };
+    });
     setChampionsTeam(ct => {
         if (!ct) return null;
         const newPlayers = ct.players.filter(p => p.id !== id);
         if (newPlayers.length === 0) return null;
-        return { ...ct, players: newPlayers };
+        const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Campeones';
+        return { ...ct, players: newPlayers, name: newName };
     });
   };
   
@@ -149,14 +158,22 @@ export function RotacionDeportiva() {
         setWaitingListIds(ids => [...ids, playerId]);
         return;
       }
-      setTeamA(t => ({...t, players: [...t.players, player]}));
+      setTeamA(t => {
+        const newPlayers = [...t.players, player];
+        const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo A';
+        return {...t, players: newPlayers, name: newName};
+      });
     } else {
       if(teamB.players.length >= 5) {
         toast({variant: 'destructive', title: "Equipo B lleno"});
         setWaitingListIds(ids => [...ids, playerId]);
         return;
       }
-      setTeamB(t => ({...t, players: [...t.players, player]}));
+      setTeamB(t => {
+        const newPlayers = [...t.players, player];
+        const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo B';
+        return {...t, players: newPlayers, name: newName};
+      });
     }
   };
 
@@ -164,8 +181,16 @@ export function RotacionDeportiva() {
     const player = players.find(p => p.id === playerId);
     if(!player) return;
 
-    setTeamA(t => ({ ...t, players: t.players.filter(p => p.id !== playerId)}));
-    setTeamB(t => ({ ...t, players: t.players.filter(p => p.id !== playerId)}));
+    setTeamA(t => {
+      const newPlayers = t.players.filter(p => p.id !== playerId);
+      const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo A';
+      return { ...t, players: newPlayers, name: newName };
+    });
+    setTeamB(t => {
+      const newPlayers = t.players.filter(p => p.id !== playerId);
+      const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo B';
+      return { ...t, players: newPlayers, name: newName };
+    });
     setWaitingListIds(ids => [playerId, ...ids]);
   };
 
@@ -184,10 +209,11 @@ export function RotacionDeportiva() {
 
         const interimLosers = losingTeamData.players.map(p => p.id);
         const newWaitingList = [...waitingListIds, ...interimLosers];
-
+        
+        const returningChampionsPlayers = championsTeam.players.map(p => ({ ...p, consecutiveWins: 0 }));
         const returningChampions = {
-            ...championsTeam,
-            players: championsTeam.players.map(p => ({ ...p, consecutiveWins: 0 }))
+            name: `Equipo ${returningChampionsPlayers[0].name}`,
+            players: returningChampionsPlayers
         };
 
         const updatedPlayers = players.map(p => {
@@ -206,7 +232,7 @@ export function RotacionDeportiva() {
         
         setPlayers(updatedPlayers);
         setTeamA(returningChampions);
-        setTeamB({ ...winningTeamData, players: interimWinners });
+        setTeamB({ name: `Equipo ${interimWinners[0].name}`, players: interimWinners });
         setWaitingListIds(newWaitingList);
         setChampionsTeam(null);
         return;
@@ -230,13 +256,14 @@ export function RotacionDeportiva() {
 
     // --- Flujo Avanzado: Se corona un nuevo campeón ---
     if (championRule && winnerNewConsecutiveWins >= winsToChampion) {
-        toast({title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansarán.`});
-        
         const newChampionPlayers = masterPlayerList
             .filter(p => winningTeamData.players.some(wp => wp.id === p.id))
             .map(p => ({ ...p, consecutiveWins: 0 }));
 
-        setChampionsTeam({ name: winningTeamData.name, players: newChampionPlayers });
+        const newChampionName = `Equipo ${newChampionPlayers[0].name}`;
+        toast({title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansarán.`});
+        
+        setChampionsTeam({ name: newChampionName, players: newChampionPlayers });
         masterPlayerList = masterPlayerList.map(p => newChampionPlayers.find(cp => cp.id === p.id) || p);
 
         if (losersToWaitingList.length < 10) {
@@ -246,8 +273,10 @@ export function RotacionDeportiva() {
             setWaitingListIds(losersToWaitingList);
         } else {
             const playersForInterim = losersToWaitingList.slice(0, 10).map(id => masterPlayerList.find(p => p.id === id)!);
-            setTeamA({ name: 'Equipo A', players: playersForInterim.slice(0, 5) });
-            setTeamB({ name: 'Equipo B', players: playersForInterim.slice(5, 10) });
+            const interimTeamAPlayers = playersForInterim.slice(0, 5);
+            const interimTeamBPlayers = playersForInterim.slice(5, 10);
+            setTeamA({ name: `Equipo ${interimTeamAPlayers[0].name}`, players: interimTeamAPlayers });
+            setTeamB({ name: `Equipo ${interimTeamBPlayers[0].name}`, players: interimTeamBPlayers });
             setWaitingListIds(losersToWaitingList.slice(10));
         }
         setPlayers(masterPlayerList);
@@ -258,7 +287,9 @@ export function RotacionDeportiva() {
     const playersForNewTeamIds = losersToWaitingList.slice(0, 5);
     if (playersForNewTeamIds.length < 5) {
         toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes retadores. El equipo ganador se queda solo." });
-        const winnerTeamWithStats = { ...winningTeamData, players: masterPlayerList.filter(p => winningTeamData.players.some(wp => wp.id === p.id))};
+        const winnerPlayers = masterPlayerList.filter(p => winningTeamData.players.some(wp => wp.id === p.id));
+        const winnerTeamWithStats = { name: `Equipo ${winnerPlayers[0].name}`, players: winnerPlayers };
+        
         if (winner === 'A') {
             setTeamA(winnerTeamWithStats);
             setTeamB({ name: 'Equipo B', players: [] });
@@ -269,11 +300,14 @@ export function RotacionDeportiva() {
         setWaitingListIds(losersToWaitingList);
     } else {
         const remainingWaitingList = losersToWaitingList.slice(5);
+        const newChallengerPlayers = playersForNewTeamIds.map(id => masterPlayerList.find(p => p.id === id)!);
         const newChallengers = {
-            name: winner === 'A' ? 'Equipo B' : 'Equipo A',
-            players: playersForNewTeamIds.map(id => masterPlayerList.find(p => p.id === id)!)
+            name: `Equipo ${newChallengerPlayers[0].name}`,
+            players: newChallengerPlayers
         };
-        const winnerTeamWithStats = { ...winningTeamData, players: masterPlayerList.filter(p => winningTeamData.players.some(wp => wp.id === p.id))};
+
+        const winnerPlayers = masterPlayerList.filter(p => winningTeamData.players.some(wp => wp.id === p.id));
+        const winnerTeamWithStats = { name: `Equipo ${winnerPlayers[0].name}`, players: winnerPlayers };
         
         if (winner === 'A') {
             setTeamA(winnerTeamWithStats);
@@ -426,10 +460,10 @@ export function RotacionDeportiva() {
                         <h3 className="font-headline text-2xl text-sky-400">Registrar Resultado del Partido</h3>
                         <div className="flex justify-center gap-4">
                             <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('A')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
-                                <Trophy className="mr-2 h-4 w-4"/> Ganó Equipo A
+                                <Trophy className="mr-2 h-4 w-4"/> Ganó {teamA.name}
                             </Button>
                             <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('B')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
-                                <Trophy className="mr-2 h-4 w-4"/> Ganó Equipo B
+                                <Trophy className="mr-2 h-4 w-4"/> Ganó {teamB.name}
                             </Button>
                         </div>
                     </div>
