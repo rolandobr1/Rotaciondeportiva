@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -178,20 +179,49 @@ export function RotacionDeportiva() {
   };
 
   const handleRemoveFromTeam = (playerId: string) => {
-    const player = players.find(p => p.id === playerId);
-    if(!player) return;
+    const playerToRemove = players.find(p => p.id === playerId);
+    if (!playerToRemove) return;
 
-    setTeamA(t => {
-      const newPlayers = t.players.filter(p => p.id !== playerId);
-      const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo A';
-      return { ...t, players: newPlayers, name: newName };
+    // Determine which team the player is on
+    const teamId = teamA.players.find(p => p.id === playerId) ? 'A' : teamB.players.find(p => p.id === playerId) ? 'B' : null;
+    if (!teamId) return;
+
+    const nextPlayerFromWaitingList = waitingPlayers.length > 0 ? waitingPlayers[0] : null;
+
+    if (teamId === 'A') {
+      setTeamA(t => {
+        let newPlayers = t.players.filter(p => p.id !== playerId);
+        if (nextPlayerFromWaitingList) {
+          newPlayers.push(nextPlayerFromWaitingList);
+        }
+        const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo A';
+        return { ...t, players: newPlayers, name: newName };
+      });
+    } else { // teamId === 'B'
+      setTeamB(t => {
+        let newPlayers = t.players.filter(p => p.id !== playerId);
+        if (nextPlayerFromWaitingList) {
+          newPlayers.push(nextPlayerFromWaitingList);
+        }
+        const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo B';
+        return { ...t, players: newPlayers, name: newName };
+      });
+    }
+
+    // Update the waiting list
+    setWaitingListIds(currentIds => {
+      // Remove the promoted player (the first one) from the list
+      const idsAfterPromotion = nextPlayerFromWaitingList ? currentIds.slice(1) : currentIds;
+      // Add the removed player to the end of the list
+      return [...idsAfterPromotion, playerId];
     });
-    setTeamB(t => {
-      const newPlayers = t.players.filter(p => p.id !== playerId);
-      const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo B';
-      return { ...t, players: newPlayers, name: newName };
-    });
-    setWaitingListIds(ids => [playerId, ...ids]);
+
+    // Provide feedback to the user
+    if (nextPlayerFromWaitingList) {
+      toast({ title: "Rotación Automática", description: `${playerToRemove.name} vuelve a la cola. ${nextPlayerFromWaitingList.name} entra al juego.` });
+    } else {
+      toast({ title: "Jugador en Espera", description: `${playerToRemove.name} ha vuelto a la lista de espera.` });
+    }
   };
 
   const handleRecordWin = (winner: 'A' | 'B') => {
