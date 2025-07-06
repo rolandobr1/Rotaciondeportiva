@@ -12,19 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const initialPlayers: Player[] = [
-  { id: '1', name: 'LeBron', wins: 10, losses: 5, winRate: 0.66, consecutiveWins: 2 },
-  { id: '2', name: 'Steph', wins: 12, losses: 3, winRate: 0.8, consecutiveWins: 3 },
-  { id: '3', name: 'KD', wins: 8, losses: 8, winRate: 0.5, consecutiveWins: 0 },
-  { id: '4', name: 'Giannis', wins: 9, losses: 4, winRate: 0.69, consecutiveWins: 1 },
-  { id: '5', name: 'Joker', wins: 15, losses: 2, winRate: 0.88, consecutiveWins: 5 },
-  { id: '6', name: 'Luka', wins: 7, losses: 6, winRate: 0.53, consecutiveWins: 0 },
-  { id: '7', name: 'Embiid', wins: 11, losses: 4, winRate: 0.73, consecutiveWins: 1 },
-  { id: '8', name: 'Tatum', wins: 9, losses: 6, winRate: 0.60, consecutiveWins: 0 },
-  { id: '9', name: 'Booker', wins: 8, losses: 5, winRate: 0.62, consecutiveWins: 0 },
-  { id: '10', name: 'Dame', wins: 10, losses: 6, winRate: 0.625, consecutiveWins: 0 },
-  { id: '11', name: 'Zion', wins: 6, losses: 7, winRate: 0.46, consecutiveWins: 0 },
-];
+const initialPlayers: Player[] = [];
 
 const PlayerCard = ({ player, onRemove, onAssign, showAssign, isWaiting }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isWaiting?: boolean }) => (
   <div className="relative flex items-center justify-between p-3 bg-secondary/50 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md">
@@ -84,7 +72,7 @@ export function RotacionDeportiva() {
   const [championsTeam, setChampionsTeam] = useState<Team | null>(null);
   const [newPlayerName, setNewPlayerName] = useState('');
   
-  const [championRule, setChampionRule] = useState(true);
+  const [championRule, setChampionRule] = useState(false);
   const [winsToChampion, setWinsToChampion] = useState(2);
 
   const { toast } = useToast();
@@ -102,19 +90,22 @@ export function RotacionDeportiva() {
     let playerName = newPlayerName.trim();
     
     if (playerName === '') {
-        const randomNames = [
-          "El Rayo", "La Muralla", "El Mago", "El Tanque", "El Halcón", 
-          "La Sombra", "El Titán", "El Cometa", "La Furia", "El Cíclope"
-        ];
-        const baseName = randomNames[Math.floor(Math.random() * randomNames.length)];
-        
-        let finalPlayerName = baseName;
-        let counter = 2;
-        while(players.some(p => p.name === finalPlayerName)) {
-            finalPlayerName = `${baseName} #${counter}`;
-            counter++;
+        let playerNumber = 1;
+        let proposedName = `Jugador ${playerNumber}`;
+        while (players.some(p => p.name === proposedName)) {
+            playerNumber++;
+            proposedName = `Jugador ${playerNumber}`;
         }
-        playerName = finalPlayerName;
+        playerName = proposedName;
+    } else {
+        if (players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
+            toast({
+                variant: 'destructive',
+                title: "Nombre duplicado",
+                description: `Ya existe un jugador con el nombre "${playerName}".`
+            });
+            return;
+        }
     }
 
     const newPlayer: Player = {
