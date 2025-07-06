@@ -95,9 +95,7 @@ export function RotacionDeportiva() {
   }, [players, waitingListIds]);
 
   useEffect(() => {
-    if (waitingPlayers.length < 10) {
-      setChampionRule(false);
-    }
+    setChampionRule(waitingPlayers.length >= 10);
   }, [waitingPlayers.length]);
 
   const handleAddPlayer = () => {
@@ -362,21 +360,17 @@ export function RotacionDeportiva() {
                         <Switch 
                             id="champion-rule" 
                             checked={championRule} 
-                            onCheckedChange={setChampionRule}
-                            disabled={waitingPlayers.length < 10 && !championsTeam}
+                            disabled
                         />
                         <Label 
-                            htmlFor="champion-rule" 
-                            className={cn((waitingPlayers.length < 10 && !championsTeam) && "text-muted-foreground")}
+                            htmlFor="champion-rule"
                         >
-                            Habilitar Regla del Campeón
+                            Regla del Campeón
                         </Label>
                     </div>
-                     {waitingPlayers.length < 10 && !championsTeam && (
-                        <p className="text-xs text-muted-foreground mb-4">
-                            Se necesitan 10 o más jugadores en espera.
-                        </p>
-                    )}
+                    <p className="text-xs text-muted-foreground mb-4">
+                        Se activa automáticamente con 10 o más jugadores en espera.
+                    </p>
                     {championRule && (
                         <div className="flex items-center gap-2 my-4">
                             <Label htmlFor="wins-to-champion">Victorias para ser campeón:</Label>
