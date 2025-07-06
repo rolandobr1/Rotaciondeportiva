@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { runBalanceTeams, runGetTeamRecommendation } from '@/app/actions';
 import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, Sparkles, Loader2, Info } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const initialPlayers: Player[] = [
   { id: '1', name: 'LeBron', wins: 10, losses: 5, winRate: 0.66, consecutiveWins: 2 },
@@ -81,7 +82,7 @@ export function RotacionDeportiva() {
   const [newPlayerName, setNewPlayerName] = useState('');
   
   const [championRule, setChampionRule] = useState(true);
-  const [winsToChampion, setWinsToChampion] = useState(3);
+  const [winsToChampion, setWinsToChampion] = useState(2);
 
   const [isLoading, setIsLoading] = useState(false);
   const [aiRecommendation, setAiRecommendation] = useState<string | null>(null);
@@ -90,6 +91,12 @@ export function RotacionDeportiva() {
   const { toast } = useToast();
 
   const waitingPlayers = useMemo(() => players.filter(p => waitingListIds.includes(p.id)), [players, waitingListIds]);
+
+  useEffect(() => {
+    if (waitingPlayers.length < 10) {
+      setChampionRule(false);
+    }
+  }, [waitingPlayers.length]);
 
   const handleAddPlayer = () => {
     let playerName = newPlayerName.trim();
@@ -319,19 +326,35 @@ export function RotacionDeportiva() {
                     <CardTitle className="font-headline flex items-center gap-2"><Crown/> Círculo de Campeones ({champions.length})</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                    <div className="flex items-center space-x-2 mb-4">
-                        <Switch id="champion-rule" checked={championRule} onCheckedChange={setChampionRule} />
-                        <Label htmlFor="champion-rule">Habilitar Regla del Campeón</Label>
+                    <div className="flex items-center space-x-2 mb-2">
+                        <Switch 
+                            id="champion-rule" 
+                            checked={championRule} 
+                            onCheckedChange={setChampionRule}
+                            disabled={waitingPlayers.length < 10}
+                        />
+                        <Label 
+                            htmlFor="champion-rule" 
+                            className={cn(waitingPlayers.length < 10 && "text-muted-foreground")}
+                        >
+                            Habilitar Regla del Campeón
+                        </Label>
                     </div>
+                     {waitingPlayers.length < 10 && (
+                        <p className="text-xs text-muted-foreground mb-4">
+                            Se necesitan 10 o más jugadores en espera.
+                        </p>
+                    )}
                     {championRule && (
-                        <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-2 my-4">
                             <Label htmlFor="wins-to-champion">Victorias para ser campeón:</Label>
                             <Input 
                                 id="wins-to-champion"
                                 type="number" 
                                 value={winsToChampion}
-                                onChange={(e) => setWinsToChampion(Number(e.target.value))}
+                                onChange={(e) => setWinsToChampion(Math.max(1, Number(e.target.value)))}
                                 className="w-20"
+                                min="1"
                             />
                         </div>
                     )}
