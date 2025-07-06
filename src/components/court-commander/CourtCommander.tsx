@@ -10,21 +10,36 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy } from 'lucide-react';
+import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const initialPlayers: Player[] = [];
 
-const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean }) => (
+const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, onMoveUp, onMoveDown, isFirst, isLast }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, onMoveUp?: (id: string) => void, onMoveDown?: (id: string) => void, isFirst?: boolean, isLast?: boolean }) => (
   <div className={cn(
     "relative flex items-center justify-between p-3 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md",
     isChampion ? "bg-amber-500" : "bg-slate-700"
   )}>
-    <div>
-      <p className={cn("font-bold", isChampion ? "text-black" : "text-sky-400")}>{player.name}</p>
-      <p className={cn("text-xs", isChampion ? "text-slate-800" : "text-slate-400")}>
-        V/D: {player.wins}/{player.losses} | Tasa de Victorias: {(player.winRate * 100).toFixed(0)}% | Racha: <span className={cn("font-bold", player.consecutiveWins > 0 ? (isChampion ? 'text-white' : 'text-amber-400') : '')}>{player.consecutiveWins}</span>
-      </p>
+    <div className="flex items-center gap-3">
+        {onMoveUp && onMoveDown && (
+            <div className="flex flex-col">
+                <Button size="icon" variant="ghost" className="h-5 w-5 p-0 text-slate-400 hover:text-white disabled:opacity-30" onClick={() => onMoveUp(player.id)} disabled={isFirst}>
+                    <ChevronUp className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-5 w-5 p-0 text-slate-400 hover:text-white disabled:opacity-30" onClick={() => onMoveDown(player.id)} disabled={isLast}>
+                    <ChevronDown className="h-4 w-4" />
+                </Button>
+            </div>
+        )}
+        <div>
+            <p className={cn("font-bold", isChampion ? "text-black" : "text-sky-400")}>
+                {turn && <span className="mr-2 text-slate-400 font-normal">{turn}.</span>}
+                {player.name}
+            </p>
+            <p className={cn("text-xs", isChampion ? "text-slate-800" : "text-slate-400")}>
+                V/D: {player.wins}/{player.losses} | Tasa de Victorias: {(player.winRate * 100).toFixed(0)}% | Racha: <span className={cn("font-bold", player.consecutiveWins > 0 ? (isChampion ? 'text-white' : 'text-amber-400') : '')}>{player.consecutiveWins}</span>
+            </p>
+        </div>
     </div>
     <div className="flex items-center gap-2">
       {showAssign && onAssign && (
@@ -224,6 +239,30 @@ export function RotacionDeportiva() {
     }
   };
 
+  const handleMovePlayerUp = (playerId: string) => {
+    setWaitingListIds(prevIds => {
+      const index = prevIds.indexOf(playerId);
+      if (index > 0) {
+        const newIds = [...prevIds];
+        [newIds[index], newIds[index - 1]] = [newIds[index - 1], newIds[index]];
+        return newIds;
+      }
+      return prevIds;
+    });
+  };
+
+  const handleMovePlayerDown = (playerId: string) => {
+    setWaitingListIds(prevIds => {
+      const index = prevIds.indexOf(playerId);
+      if (index < prevIds.length - 1 && index !== -1) {
+        const newIds = [...prevIds];
+        [newIds[index], newIds[index + 1]] = [newIds[index + 1], newIds[index]];
+        return newIds;
+      }
+      return prevIds;
+    });
+  };
+
   const handleRecordWin = (winner: 'A' | 'B') => {
     const winningTeamData = winner === 'A' ? teamA : teamB;
     const losingTeamData = winner === 'A' ? teamB : teamA;
@@ -393,13 +432,18 @@ export function RotacionDeportiva() {
               </CardHeader>
               <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
                 {waitingPlayers.length > 0 ? (
-                    waitingPlayers.map(p => (
+                    waitingPlayers.map((p, index) => (
                         <PlayerCard 
                             key={p.id} 
                             player={p}
+                            turn={index + 1}
                             onRemove={handleRemovePlayer} 
                             onAssign={handleAssignPlayer}
                             showAssign={true}
+                            onMoveUp={handleMovePlayerUp}
+                            onMoveDown={handleMovePlayerDown}
+                            isFirst={index === 0}
+                            isLast={index === waitingPlayers.length - 1}
                         />
                     ))
                 ) : (
