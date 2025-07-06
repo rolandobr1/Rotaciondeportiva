@@ -467,33 +467,47 @@ export function RotacionDeportiva() {
     if (championsTeam) {
         toast({ title: "Partido Interino Finalizado", description: `El ${winningTeamData.name} se enfrentará al campeón.` });
 
-        const interimLosers = losingTeamData.players.map(p => p.id);
-        const newWaitingList = [...waitingListIds, ...interimLosers];
+        const interimLosersIds = losingTeamData.players.map(p => p.id);
+        const newWaitingListIds = [...waitingListIds, ...interimLosersIds];
         
-        const returningChampionsPlayers = championsTeam.players.map(p => ({ ...p, consecutiveWins: 0 }));
-        const returningChampions = {
-            name: `Equipo ${returningChampionsPlayers[0].name}`,
-            players: returningChampionsPlayers
-        };
-
+        // Update all players in a single pass
         const updatedPlayers = players.map(p => {
+            // Losers of interim match
             if (losingTeamData.players.some(lp => lp.id === p.id)) {
                 const newLosses = p.losses + 1;
                 return { ...p, losses: newLosses, consecutiveWins: 0, winRate: p.wins / (p.wins + newLosses) };
             }
+            // Winners of interim match
             if (winningTeamData.players.some(wp => wp.id === p.id)) {
                 const newWins = p.wins + 1;
-                return { ...p, wins: newWins, consecutiveWins: 1, winRate: newWins / (newWins + p.losses) };
+                const existingConsecutiveWins = p.consecutiveWins || 0;
+                return { ...p, wins: newWins, consecutiveWins: existingConsecutiveWins + 1, winRate: newWins / (newWins + p.losses) };
+            }
+            // Champions return to play, streak is reset
+            if (championsTeam.players.some(cp => cp.id === p.id)) {
+                return { ...p, consecutiveWins: 0 };
             }
             return p;
         });
 
-        const interimWinners = updatedPlayers.filter(p => winningTeamData.players.some(wp => wp.id === p.id));
+        // Get the updated player objects for the new teams from the single source of truth
+        const newChampionsPlayers = updatedPlayers.filter(p => championsTeam.players.some(cp => cp.id === p.id));
+        const newInterimWinnersPlayers = updatedPlayers.filter(p => winningTeamData.players.some(wp => wp.id === p.id));
+
+        const newChampionsTeam = {
+            name: `Equipo ${newChampionsPlayers[0].name}`,
+            players: newChampionsPlayers
+        };
+
+        const newInterimWinnersTeam = {
+            name: `Equipo ${newInterimWinnersPlayers[0].name}`,
+            players: newInterimWinnersPlayers
+        };
         
         setPlayers(updatedPlayers);
-        setTeamA(returningChampions);
-        setTeamB({ name: `Equipo ${interimWinners[0].name}`, players: interimWinners });
-        setWaitingListIds(newWaitingList);
+        setTeamA(newChampionsTeam); // The returning champions will be Team A
+        setTeamB(newInterimWinnersTeam); // The interim winners will be Team B
+        setWaitingListIds(newWaitingListIds);
         setChampionsTeam(null);
         return;
     }
