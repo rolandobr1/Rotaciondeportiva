@@ -16,11 +16,6 @@ export default {
       },
     },
     extend: {
-      fontFamily: {
-        body: ['PT Sans', 'sans-serif'],
-        headline: ['Playfair Display', 'serif'],
-        code: ['monospace'],
-      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

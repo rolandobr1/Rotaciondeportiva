@@ -87,7 +87,7 @@ const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (pla
     return (
         <Card className="flex-1 min-w-[280px] bg-slate-800/80 border-slate-700">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-headline text-2xl text-sky-400">
+                <CardTitle className="flex items-center gap-2 text-2xl text-sky-400">
                     <Swords /> {team.name}
                 </CardTitle>
                 <CardDescription className="text-slate-400">Tasa de Vic. Prom.: {(avgWinRate * 100).toFixed(0)}%</CardDescription>
@@ -592,7 +592,7 @@ export function RotacionDeportiva() {
       return (
           <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-4 md:p-8 flex items-center justify-center">
               <div className="text-center">
-                  <h1 className="font-headline font-bold text-5xl md:text-6xl text-sky-400">Cargando...</h1>
+                  <h1 className="font-bold text-5xl md:text-6xl text-sky-400">Cargando...</h1>
               </div>
           </div>
       );
@@ -602,7 +602,7 @@ export function RotacionDeportiva() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-4 md:p-8">
       <main className="container mx-auto">
         <header className="text-center mb-8">
-            <h1 className="font-headline font-bold text-5xl md:text-6xl text-sky-400 flex items-center justify-center gap-4"><Flame /> Court Commander</h1>
+            <h1 className="font-bold text-5xl md:text-6xl text-sky-400 flex items-center justify-center gap-4"><Flame /> Rotación Deportiva</h1>
             <p className="text-slate-400 mt-2">Gestión de equipos para partidos amistosos</p>
         </header>
 
@@ -611,7 +611,7 @@ export function RotacionDeportiva() {
           <div className="lg:col-span-1 space-y-8">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2 text-sky-400"><Plus/> Añadir Nuevo Jugador</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-sky-400"><Plus/> Añadir Nuevo Jugador</CardTitle>
               </CardHeader>
               <CardContent>
                   <div className="flex gap-2">
@@ -629,7 +629,7 @@ export function RotacionDeportiva() {
 
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2 text-sky-400">Acciones del Día</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-sky-400">Acciones del Día</CardTitle>
               </CardHeader>
               <CardContent>
                   <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
@@ -702,7 +702,7 @@ export function RotacionDeportiva() {
 
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2 text-sky-400"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-sky-400"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
                   <CardDescription className="text-slate-400">Los jugadores se añaden a los equipos desde aquí.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -735,7 +735,7 @@ export function RotacionDeportiva() {
             )}>
                 {championsTeam ? (
                     <div className="p-6 text-white">
-                        <h2 className="font-headline text-3xl flex items-center justify-center gap-3 font-bold text-center">
+                        <h2 className="text-3xl flex items-center justify-center gap-3 font-bold text-center">
                             <Trophy className="h-8 w-8" />
                             Campeón Descansando
                             <Trophy className="h-8 w-8" />
@@ -759,7 +759,7 @@ export function RotacionDeportiva() {
                 ) : (
                     <>
                         <CardHeader>
-                            <CardTitle className="font-headline flex items-center gap-2 text-sky-400">
+                            <CardTitle className="flex items-center gap-2 text-sky-400">
                                 <Crown /> Regla del Campeón
                             </CardTitle>
                         </CardHeader>
@@ -799,7 +799,7 @@ export function RotacionDeportiva() {
           <div className="lg:col-span-2 space-y-8">
             <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
-                    <CardTitle className="font-headline text-3xl text-sky-400">{championsTeam ? "Partido Interino" : "Equipos Actuales"}</CardTitle>
+                    <CardTitle className="text-3xl text-sky-400">{championsTeam ? "Partido Interino" : "Equipos Actuales"}</CardTitle>
                     {championsTeam && <CardDescription className="text-yellow-400">El ganador de este partido se enfrentará al campeón: {championsTeam.name}</CardDescription>}
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -811,7 +811,7 @@ export function RotacionDeportiva() {
                     <Separator className="bg-slate-700"/>
 
                     <div className="text-center space-y-4">
-                        <h3 className="font-headline text-2xl text-sky-400">Registrar Resultado del Partido</h3>
+                        <h3 className="text-2xl text-sky-400">Registrar Resultado del Partido</h3>
                         <div className="flex justify-center gap-4">
                             <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('A')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
                                 <Trophy className="mr-2 h-4 w-4"/> Ganó {teamA.name}

@@ -1,10 +1,13 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 
+const inter = Inter({ subsets: ['latin'] });
+
 export const metadata: Metadata = {
-  title: 'Court Commander',
-  description: 'Gestiona tus equipos de baloncesto, equilibra partidos con IA y lleva un registro de las estadísticas.',
+  title: 'Rotacion Deportiva',
+  description: 'Gestión de equipos para partidos amistosos.',
 };
 
 export default function RootLayout({
@@ -15,13 +18,10 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0f172a" />
       </head>
-      <body className="font-body antialiased">
+      <body className={`${inter.className} antialiased`}>
         {children}
         <Toaster />
       </body>
