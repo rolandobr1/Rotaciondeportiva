@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 
-const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, onMoveUp, onMoveDown, isFirst, isLast }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, onMoveUp?: (id: string) => void, onMoveDown?: (id: string) => void, isFirst?: boolean, isLast?: boolean }) => (
+const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, onMoveUp, onMoveDown, isFirst, isLast, isTeamAFull, isTeamBFull }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, onMoveUp?: (id: string) => void, onMoveDown?: (id: string) => void, isFirst?: boolean, isLast?: boolean, isTeamAFull?: boolean, isTeamBFull?: boolean }) => (
   <div className={cn(
     "relative flex items-center justify-between p-3 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md",
     isChampion ? "bg-amber-500" : "bg-slate-700"
@@ -63,8 +63,8 @@ const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, 
     <div className="flex items-center gap-2">
       {showAssign && onAssign && (
         <>
-          <Button size="sm" onClick={() => onAssign(player.id, 'A')} className="h-7 w-7 p-0 bg-sky-700 hover:bg-sky-600 text-white border-none">A</Button>
-          <Button size="sm" onClick={() => onAssign(player.id, 'B')} className="h-7 w-7 p-0 bg-teal-700 hover:bg-teal-600 text-white border-none">B</Button>
+          <Button size="sm" onClick={() => onAssign(player.id, 'A')} className="h-7 w-7 p-0 bg-sky-700 hover:bg-sky-600 text-white border-none disabled:bg-slate-600 disabled:opacity-50" disabled={isTeamAFull}>A</Button>
+          <Button size="sm" onClick={() => onAssign(player.id, 'B')} className="h-7 w-7 p-0 bg-teal-700 hover:bg-teal-600 text-white border-none disabled:bg-slate-600 disabled:opacity-50" disabled={isTeamBFull}>B</Button>
         </>
       )}
       {onRemove && (
@@ -270,29 +270,50 @@ export function RotacionDeportiva() {
     const player = players.find(p => p.id === playerId);
     if (!player) return;
 
-    setWaitingListIds(ids => ids.filter(id => id !== playerId));
     if (team === 'A') {
-      if(teamA.players.length >= 5) {
-        toast({variant: 'destructive', title: "Equipo A lleno"});
-        setWaitingListIds(ids => [...ids, playerId]);
-        return;
-      }
-      setTeamA(t => {
-        const newPlayers = [...t.players, player];
-        const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo A';
-        return {...t, players: newPlayers, name: newName};
-      });
-    } else {
-      if(teamB.players.length >= 5) {
-        toast({variant: 'destructive', title: "Equipo B lleno"});
-        setWaitingListIds(ids => [...ids, playerId]);
-        return;
-      }
-      setTeamB(t => {
-        const newPlayers = [...t.players, player];
-        const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo B';
-        return {...t, players: newPlayers, name: newName};
-      });
+        if (teamA.players.length >= 5) {
+            toast({ variant: 'destructive', title: "Equipo A ya está lleno." });
+            return;
+        }
+
+        const newTeamAPlayers = [...teamA.players, player];
+        const updatedWaitingIds = waitingListIds.filter(id => id !== playerId);
+
+        setTeamA({ players: newTeamAPlayers, name: `Equipo ${newTeamAPlayers[0].name}` });
+
+        if (newTeamAPlayers.length === 5 && teamB.players.length === 0 && updatedWaitingIds.length >= 5) {
+            const playersForTeamB = updatedWaitingIds.slice(0, 5).map(id => players.find(p => p.id === id)!);
+            setTeamB({ players: playersForTeamB, name: `Equipo ${playersForTeamB[0].name}` });
+            setWaitingListIds(updatedWaitingIds.slice(5));
+            toast({
+                title: "Equipo B auto-completado",
+                description: "Los 5 siguientes jugadores han formado el equipo.",
+            });
+        } else {
+            setWaitingListIds(updatedWaitingIds);
+        }
+    } else { // team === 'B'
+        if (teamB.players.length >= 5) {
+            toast({ variant: 'destructive', title: "Equipo B ya está lleno." });
+            return;
+        }
+
+        const newTeamBPlayers = [...teamB.players, player];
+        const updatedWaitingIds = waitingListIds.filter(id => id !== playerId);
+
+        setTeamB({ players: newTeamBPlayers, name: `Equipo ${newTeamBPlayers[0].name}` });
+
+        if (newTeamBPlayers.length === 5 && teamA.players.length === 0 && updatedWaitingIds.length >= 5) {
+            const playersForTeamA = updatedWaitingIds.slice(0, 5).map(id => players.find(p => p.id === id)!);
+            setTeamA({ players: playersForTeamA, name: `Equipo ${playersForTeamA[0].name}` });
+            setWaitingListIds(updatedWaitingIds.slice(5));
+            toast({
+                title: "Equipo A auto-completado",
+                description: "Los 5 siguientes jugadores han formado el equipo.",
+            });
+        } else {
+            setWaitingListIds(updatedWaitingIds);
+        }
     }
   };
 
@@ -625,6 +646,8 @@ export function RotacionDeportiva() {
                             onMoveDown={handleMovePlayerDown}
                             isFirst={index === 0}
                             isLast={index === waitingPlayers.length - 1}
+                            isTeamAFull={teamA.players.length >= 5}
+                            isTeamBFull={teamB.players.length >= 5}
                         />
                     ))
                 ) : (
