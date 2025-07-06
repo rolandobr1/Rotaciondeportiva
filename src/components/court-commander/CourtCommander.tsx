@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { runBalanceTeams, runGetTeamRecommendation } from '@/app/actions';
-import { Dribbble, Users, Crown, Plus, Trash2, Swords, Trophy, Sparkles, Loader2, Info } from 'lucide-react';
+import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, Sparkles, Loader2, Info } from 'lucide-react';
 
 const initialPlayers: Player[] = [
   { id: '1', name: 'LeBron', wins: 10, losses: 5, winRate: 0.66, consecutiveWins: 2 },
@@ -72,7 +72,7 @@ const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (pla
     );
 };
 
-export function CourtCommander() {
+export function RotacionDeportiva() {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [waitingListIds, setWaitingListIds] = useState<string[]>(initialPlayers.map(p => p.id));
   const [teamA, setTeamA] = useState<Team>({ name: 'Equipo A', players: [] });
@@ -92,13 +92,28 @@ export function CourtCommander() {
   const waitingPlayers = useMemo(() => players.filter(p => waitingListIds.includes(p.id)), [players, waitingListIds]);
 
   const handleAddPlayer = () => {
-    if (newPlayerName.trim() === '') {
-      toast({ variant: 'destructive', title: "Error", description: "El nombre del jugador no puede estar vacío." });
-      return;
+    let playerName = newPlayerName.trim();
+    
+    if (playerName === '') {
+        const randomNames = [
+          "El Rayo", "La Muralla", "El Mago", "El Tanque", "El Halcón", 
+          "La Sombra", "El Titán", "El Cometa", "La Furia", "El Cíclope"
+        ];
+        const baseName = randomNames[Math.floor(Math.random() * randomNames.length)];
+        
+        let finalPlayerName = baseName;
+        let counter = 2;
+        // Ensure name is unique
+        while(players.some(p => p.name === finalPlayerName)) {
+            finalPlayerName = `${baseName} #${counter}`;
+            counter++;
+        }
+        playerName = finalPlayerName;
     }
+
     const newPlayer: Player = {
       id: crypto.randomUUID(),
-      name: newPlayerName,
+      name: playerName,
       wins: 0,
       losses: 0,
       winRate: 0,
@@ -252,8 +267,8 @@ export function CourtCommander() {
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
       <main className="container mx-auto">
         <header className="text-center mb-8">
-            <h1 className="font-headline text-5xl md:text-6xl text-primary flex items-center justify-center gap-4"><Dribbble /> Comandante de Cancha</h1>
-            <p className="text-muted-foreground mt-2">Equilibrio de Equipos con IA para tu Próximo Partido</p>
+            <h1 className="font-headline text-5xl md:text-6xl text-primary flex items-center justify-center gap-4"><Flame /> Rotación Deportiva</h1>
+            <p className="text-muted-foreground mt-2">Gestión de equipos para partidos amistosos</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -267,7 +282,7 @@ export function CourtCommander() {
               <CardContent>
                   <div className="flex gap-2">
                     <Input 
-                      placeholder="Ej., Michael Jordan" 
+                      placeholder="Ej., Nombre del Jugador" 
                       value={newPlayerName}
                       onChange={(e) => setNewPlayerName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer()}

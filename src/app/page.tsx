@@ -1,5 +1,5 @@
-import { CourtCommander } from '@/components/court-commander/CourtCommander';
+import { RotacionDeportiva } from '@/components/court-commander/CourtCommander';
 
 export default function Home() {
-  return <CourtCommander />;
+  return <RotacionDeportiva />;
 }

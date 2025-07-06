@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Comandante de Cancha',
+  title: 'Rotación Deportiva',
   description: 'Gestiona y equilibra tus equipos de baloncesto con IA.',
 };
 
