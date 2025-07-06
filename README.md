@@ -24,7 +24,7 @@ Para desplegar tu aplicación, necesitarás la [CLI de Firebase](https://firebas
     ```
 
 2.  **Inicializa App Hosting:**
-    Si aún no lo has hecho, asocia este proyecto con tu proyecto de Firebase:
+    Si aún no lo has hecho, ejecuta el siguiente comando. Esto asociará el proyecto con Firebase, creará un backend de App Hosting y actualizará tu archivo `firebase.json` para conectar el hosting con tu aplicación:
     ```bash
     firebase init apphosting
     ```
