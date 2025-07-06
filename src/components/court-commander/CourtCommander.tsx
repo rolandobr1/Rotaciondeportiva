@@ -14,23 +14,26 @@ import { cn } from '@/lib/utils';
 
 const initialPlayers: Player[] = [];
 
-const PlayerCard = ({ player, onRemove, onAssign, showAssign, isWaiting }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isWaiting?: boolean }) => (
-  <div className="relative flex items-center justify-between p-3 bg-secondary/50 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md">
+const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean }) => (
+  <div className={cn(
+    "relative flex items-center justify-between p-3 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md",
+    isChampion ? "bg-amber-500" : "bg-slate-700"
+  )}>
     <div>
-      <p className="font-bold text-primary">{player.name}</p>
-      <p className="text-xs text-muted-foreground">
-        V/D: {player.wins}/{player.losses} | Tasa de Victorias: {(player.winRate * 100).toFixed(0)}% | Racha: {player.consecutiveWins}
+      <p className={cn("font-bold", isChampion ? "text-black" : "text-sky-400")}>{player.name}</p>
+      <p className={cn("text-xs", isChampion ? "text-slate-800" : "text-slate-400")}>
+        V/D: {player.wins}/{player.losses} | Tasa de Victorias: {(player.winRate * 100).toFixed(0)}% | Racha: <span className={cn("font-bold", player.consecutiveWins > 0 ? (isChampion ? 'text-white' : 'text-amber-400') : '')}>{player.consecutiveWins}</span>
       </p>
     </div>
     <div className="flex items-center gap-2">
       {showAssign && onAssign && (
         <>
-          <Button size="sm" variant="outline" onClick={() => onAssign(player.id, 'A')} className="h-7 w-7 p-0">A</Button>
-          <Button size="sm" variant="outline" onClick={() => onAssign(player.id, 'B')} className="h-7 w-7 p-0">B</Button>
+          <Button size="sm" onClick={() => onAssign(player.id, 'A')} className="h-7 w-7 p-0 bg-sky-700 hover:bg-sky-600 text-white border-none">A</Button>
+          <Button size="sm" onClick={() => onAssign(player.id, 'B')} className="h-7 w-7 p-0 bg-teal-700 hover:bg-teal-600 text-white border-none">B</Button>
         </>
       )}
       {onRemove && (
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onRemove(player.id)}>
+        <Button size="icon" variant="ghost" className={cn("h-7 w-7", isChampion ? "text-black hover:text-red-900" : "text-slate-400 hover:text-red-500")} onClick={() => onRemove(player.id)}>
           <Trash2 className="h-4 w-4" />
         </Button>
       )}
@@ -46,18 +49,18 @@ const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (pla
     }, [team.players]);
 
     return (
-        <Card className="flex-1 min-w-[280px] bg-background/70">
+        <Card className="flex-1 min-w-[280px] bg-slate-800/80 border-slate-700">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-headline text-2xl">
-                    <Swords className="text-primary" /> {team.name}
+                <CardTitle className="flex items-center gap-2 font-headline text-2xl text-sky-400">
+                    <Swords /> {team.name}
                 </CardTitle>
-                <CardDescription>Tasa de Vic. Prom.: {(avgWinRate * 100).toFixed(0)}%</CardDescription>
+                <CardDescription className="text-slate-400">Tasa de Vic. Prom.: {(avgWinRate * 100).toFixed(0)}%</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
                 {team.players.length > 0 ? (
                     team.players.map(p => <PlayerCard key={p.id} player={p} onRemove={() => onRemovePlayer(p.id)} />)
                 ) : (
-                    <div className="text-center text-muted-foreground py-8">Añade jugadores a este equipo</div>
+                    <div className="text-center text-slate-500 py-8">Añade jugadores a este equipo</div>
                 )}
             </CardContent>
         </Card>
@@ -291,19 +294,19 @@ export function RotacionDeportiva() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-4 md:p-8">
       <main className="container mx-auto">
         <header className="text-center mb-8">
-            <h1 className="font-headline text-5xl md:text-6xl text-primary flex items-center justify-center gap-4"><Flame /> Rotación Deportiva</h1>
-            <p className="text-muted-foreground mt-2">Gestión de equipos para partidos amistosos</p>
+            <h1 className="font-headline text-5xl md:text-6xl text-sky-400 flex items-center justify-center gap-4"><Flame /> Rotación Deportiva</h1>
+            <p className="text-slate-400 mt-2">Gestión de equipos para partidos amistosos</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           <div className="lg:col-span-1 space-y-8">
-            <Card>
+            <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2"><Plus/> Añadir Nuevo Jugador</CardTitle>
+                  <CardTitle className="font-headline flex items-center gap-2 text-sky-400"><Plus/> Añadir Nuevo Jugador</CardTitle>
               </CardHeader>
               <CardContent>
                   <div className="flex gap-2">
@@ -312,16 +315,17 @@ export function RotacionDeportiva() {
                       value={newPlayerName}
                       onChange={(e) => setNewPlayerName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer()}
+                      className="bg-slate-700 border-slate-600 placeholder:text-slate-500"
                     />
-                    <Button onClick={handleAddPlayer} className="bg-accent hover:bg-accent/90 text-accent-foreground">Añadir</Button>
+                    <Button onClick={handleAddPlayer} className="bg-sky-600 hover:bg-sky-700 text-white">Añadir</Button>
                   </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
-                  <CardDescription>Los jugadores se añaden a los equipos desde aquí.</CardDescription>
+                  <CardTitle className="font-headline flex items-center gap-2 text-sky-400"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
+                  <CardDescription className="text-slate-400">Los jugadores se añaden a los equipos desde aquí.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
                 {waitingPlayers.length > 0 ? (
@@ -332,19 +336,20 @@ export function RotacionDeportiva() {
                             onRemove={handleRemovePlayer} 
                             onAssign={handleAssignPlayer}
                             showAssign={true}
-                            isWaiting={true}
                         />
                     ))
                 ) : (
-                    <p className="text-muted-foreground text-center py-4">No hay jugadores en espera.</p>
+                    <p className="text-slate-500 text-center py-4">No hay jugadores en espera.</p>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className={cn("border-slate-700 transition-all", championsTeam ? "bg-gradient-to-br from-amber-500 to-yellow-400" : "bg-slate-800")}>
                 <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2"><Crown/> Campeón en Descanso ({championsTeam ? championsTeam.players.length : 0})</CardTitle>
-                    {championsTeam && <CardDescription>{championsTeam.name}</CardDescription>}
+                    <CardTitle className={cn("font-headline flex items-center gap-2", championsTeam ? "text-black" : "text-sky-400")}>
+                        <Crown/> Campeón en Descanso ({championsTeam ? championsTeam.players.length : 0})
+                    </CardTitle>
+                    {championsTeam && <CardDescription className="text-amber-900">{championsTeam.name}</CardDescription>}
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center space-x-2 mb-2">
@@ -353,46 +358,44 @@ export function RotacionDeportiva() {
                             checked={championRule} 
                             disabled
                         />
-                        <Label 
-                            htmlFor="champion-rule"
-                        >
+                        <Label htmlFor="champion-rule" className={cn(championsTeam && "text-black")}>
                             Regla del Campeón
                         </Label>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-4">
+                    <p className={cn("text-xs mb-4", championsTeam ? "text-amber-800" : "text-slate-400")}>
                         Se activa automáticamente con 10 o más jugadores en espera.
                     </p>
                     {championRule && (
                         <div className="flex items-center gap-2 my-4">
-                            <Label htmlFor="wins-to-champion">Victorias para ser campeón:</Label>
+                            <Label htmlFor="wins-to-champion" className={cn(championsTeam && "text-black")}>Victorias para ser campeón:</Label>
                             <Input 
                                 id="wins-to-champion"
                                 type="number" 
                                 value={winsToChampion}
                                 onChange={(e) => setWinsToChampion(Math.max(1, Number(e.target.value)))}
-                                className="w-20"
+                                className="w-20 bg-slate-700 border-slate-600 text-white"
                                 min="1"
                             />
                         </div>
                     )}
-                    <Separator/>
+                    <Separator className={cn(championsTeam ? 'bg-amber-600' : 'bg-slate-700')}/>
                     <div className="space-y-2 mt-4 max-h-[200px] overflow-y-auto">
                     {championsTeam && championsTeam.players.length > 0 ? (
-                        championsTeam.players.map(p => <PlayerCard key={p.id} player={p} onRemove={handleRemovePlayer}/>)
+                        championsTeam.players.map(p => <PlayerCard key={p.id} player={p} onRemove={handleRemovePlayer} isChampion={true}/>)
                     ) : (
-                        <p className="text-muted-foreground text-center py-4">No hay un equipo campeón descansando.</p>
+                        <p className={cn("text-center py-4", championsTeam ? "text-black" : "text-slate-500")}>No hay un equipo campeón descansando.</p>
                     )}
                     </div>
-                    {championsTeam && <Button variant="outline" className="w-full mt-4" onClick={handleReturnChampionToWaitingList}>Devolver Campeón a la Lista de Espera</Button>}
+                    {championsTeam && <Button className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white border-none" onClick={handleReturnChampionToWaitingList}>Devolver Campeón a la Lista de Espera</Button>}
                 </CardContent>
             </Card>
           </div>
 
           <div className="lg:col-span-2 space-y-8">
-            <Card className="bg-card/50">
+            <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
-                    <CardTitle className="font-headline text-3xl">{championsTeam ? "Partido Interino" : "Equipos Actuales"}</CardTitle>
-                    {championsTeam && <CardDescription>El ganador de este partido se enfrentará al campeón: {championsTeam.name}</CardDescription>}
+                    <CardTitle className="font-headline text-3xl text-sky-400">{championsTeam ? "Partido Interino" : "Equipos Actuales"}</CardTitle>
+                    {championsTeam && <CardDescription className="text-yellow-400">El ganador de este partido se enfrentará al campeón: {championsTeam.name}</CardDescription>}
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="flex flex-col md:flex-row gap-6">
@@ -400,15 +403,15 @@ export function RotacionDeportiva() {
                         <TeamColumn team={teamB} onRemovePlayer={handleRemoveFromTeam} />
                     </div>
 
-                    <Separator />
+                    <Separator className="bg-slate-700"/>
 
                     <div className="text-center space-y-4">
-                        <h3 className="font-headline text-2xl">Registrar Resultado del Partido</h3>
+                        <h3 className="font-headline text-2xl text-sky-400">Registrar Resultado del Partido</h3>
                         <div className="flex justify-center gap-4">
-                            <Button variant="outline" size="lg" className="border-2 border-primary hover:bg-primary hover:text-primary-foreground" onClick={() => handleRecordWin('A')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
+                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('A')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
                                 <Trophy className="mr-2 h-4 w-4"/> Ganó Equipo A
                             </Button>
-                            <Button variant="outline" size="lg" className="border-2 border-primary hover:bg-primary hover:text-primary-foreground" onClick={() => handleRecordWin('B')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
+                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('B')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
                                 <Trophy className="mr-2 h-4 w-4"/> Ganó Equipo B
                             </Button>
                         </div>
