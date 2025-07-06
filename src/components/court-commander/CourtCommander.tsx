@@ -13,8 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const initialPlayers: Player[] = [];
-
 const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, onMoveUp, onMoveDown, isFirst, isLast }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, onMoveUp?: (id: string) => void, onMoveDown?: (id: string) => void, isFirst?: boolean, isLast?: boolean }) => (
   <div className={cn(
     "relative flex items-center justify-between p-3 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md",
@@ -84,8 +82,9 @@ const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (pla
 };
 
 export function RotacionDeportiva() {
-  const [players, setPlayers] = useState<Player[]>(initialPlayers);
-  const [waitingListIds, setWaitingListIds] = useState<string[]>(initialPlayers.map(p => p.id));
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [waitingListIds, setWaitingListIds] = useState<string[]>([]);
   const [teamA, setTeamA] = useState<Team>({ name: 'Equipo A', players: [] });
   const [teamB, setTeamB] = useState<Team>({ name: 'Equipo B', players: [] });
   const [championsTeam, setChampionsTeam] = useState<Team | null>(null);
@@ -95,6 +94,61 @@ export function RotacionDeportiva() {
   const [winsToChampion, setWinsToChampion] = useState(2);
 
   const { toast } = useToast();
+
+  const STORAGE_KEYS = useMemo(() => ({
+    PLAYERS: 'rotacionDeportiva.players',
+    WAITING_LIST: 'rotacionDeportiva.waitingListIds',
+    TEAM_A: 'rotacionDeportiva.teamA',
+    TEAM_B: 'rotacionDeportiva.teamB',
+    CHAMPIONS: 'rotacionDeportiva.championsTeam',
+    WINS_TO_CHAMPION: 'rotacionDeportiva.winsToChampion',
+  }), []);
+  
+  useEffect(() => {
+    try {
+      const storedPlayers = localStorage.getItem(STORAGE_KEYS.PLAYERS);
+      if (storedPlayers) setPlayers(JSON.parse(storedPlayers));
+
+      const storedWaitingList = localStorage.getItem(STORAGE_KEYS.WAITING_LIST);
+      if (storedWaitingList) setWaitingListIds(JSON.parse(storedWaitingList));
+
+      const storedTeamA = localStorage.getItem(STORAGE_KEYS.TEAM_A);
+      if (storedTeamA) setTeamA(JSON.parse(storedTeamA));
+
+      const storedTeamB = localStorage.getItem(STORAGE_KEYS.TEAM_B);
+      if (storedTeamB) setTeamB(JSON.parse(storedTeamB));
+
+      const storedChampions = localStorage.getItem(STORAGE_KEYS.CHAMPIONS);
+      if (storedChampions && storedChampions !== 'null') setChampionsTeam(JSON.parse(storedChampions));
+      
+      const storedWins = localStorage.getItem(STORAGE_KEYS.WINS_TO_CHAMPION);
+      if (storedWins) setWinsToChampion(JSON.parse(storedWins));
+
+    } catch (error) {
+      console.error("Error al cargar datos desde localStorage", error);
+      toast({
+        variant: 'destructive',
+        title: "Error al cargar datos",
+        description: "No se pudieron cargar los datos guardados. Se empezará de cero."
+      });
+    }
+    setIsLoaded(true);
+  }, [STORAGE_KEYS, toast]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
+      localStorage.setItem(STORAGE_KEYS.WAITING_LIST, JSON.stringify(waitingListIds));
+      localStorage.setItem(STORAGE_KEYS.TEAM_A, JSON.stringify(teamA));
+      localStorage.setItem(STORAGE_KEYS.TEAM_B, JSON.stringify(teamB));
+      localStorage.setItem(STORAGE_KEYS.CHAMPIONS, JSON.stringify(championsTeam));
+      localStorage.setItem(STORAGE_KEYS.WINS_TO_CHAMPION, JSON.stringify(winsToChampion));
+    } catch (error) {
+      console.error("Error al guardar datos en localStorage", error);
+    }
+  }, [players, waitingListIds, teamA, teamB, championsTeam, winsToChampion, isLoaded, STORAGE_KEYS]);
+
 
   const waitingPlayers = useMemo(() => {
       const waitingPlayersMap = new Map(players.map(p => [p.id, p]));
@@ -312,7 +366,8 @@ export function RotacionDeportiva() {
     let masterPlayerList = players.map(p => {
         if (winningTeamData.players.some(wp => wp.id === p.id)) {
             const newWins = p.wins + 1;
-            return { ...p, wins: newWins, consecutiveWins: winnerNewConsecutiveWins, winRate: newWins / (newWins + p.losses) };
+            const existingConsecutiveWins = p.consecutiveWins || 0;
+            return { ...p, wins: newWins, consecutiveWins: existingConsecutiveWins + 1, winRate: newWins / (newWins + p.losses) };
         }
         if (losingTeamData.players.some(lp => lp.id === p.id)) {
             const newLosses = p.losses + 1;
@@ -322,18 +377,18 @@ export function RotacionDeportiva() {
     });
 
     const losersToWaitingList = [...waitingListIds, ...losingTeamData.players.map(p => p.id)];
+    
+    const winningTeamCurrentPlayers = masterPlayerList.filter(p => winningTeamData.players.some(wp => wp.id === p.id));
+    const finalConsecutiveWins = winningTeamCurrentPlayers[0].consecutiveWins;
 
     // --- Flujo Avanzado: Se corona un nuevo campeón ---
-    if (championRule && winnerNewConsecutiveWins >= winsToChampion) {
-        const newChampionPlayers = masterPlayerList
-            .filter(p => winningTeamData.players.some(wp => wp.id === p.id))
-            .map(p => ({ ...p, consecutiveWins: 0 }));
+    if (championRule && finalConsecutiveWins >= winsToChampion) {
+        const newChampionPlayers = winningTeamCurrentPlayers;
 
-        const newChampionName = `Equipo ${newChampionPlayers[0].name}`;
+        const newChampionName = `Campeones`;
         toast({title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansarán.`});
         
         setChampionsTeam({ name: newChampionName, players: newChampionPlayers });
-        masterPlayerList = masterPlayerList.map(p => newChampionPlayers.find(cp => cp.id === p.id) || p);
 
         if (losersToWaitingList.length < 10) {
             toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes jugadores en espera para un partido interino. Los equipos se han vaciado." });
@@ -395,6 +450,16 @@ export function RotacionDeportiva() {
     setWaitingListIds(prev => [...prev, ...championsTeam.players.map(c => c.id)]);
     setChampionsTeam(null);
   };
+  
+  if (!isLoaded) {
+      return (
+          <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-4 md:p-8 flex items-center justify-center">
+              <div className="text-center">
+                  <h1 className="font-headline text-5xl md:text-6xl text-sky-400">Cargando...</h1>
+              </div>
+          </div>
+      );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-4 md:p-8">
@@ -463,7 +528,7 @@ export function RotacionDeportiva() {
                             Campeón Descansando
                             <Trophy className="h-8 w-8" />
                         </h2>
-                        <p className="mt-2 text-amber-100 font-semibold">Racha Actual: {winsToChampion} victorias</p>
+                        <p className="mt-2 text-amber-100 font-semibold">Racha Actual: {championsTeam.players[0].consecutiveWins} victorias</p>
                         <p className="mt-1 text-sm text-amber-200/90">Esperando al ganador del partido interino para volver a entrar.</p>
 
                         <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -549,3 +614,5 @@ export function RotacionDeportiva() {
     </div>
   );
 }
+
+    
