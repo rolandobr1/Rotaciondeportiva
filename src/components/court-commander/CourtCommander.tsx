@@ -10,8 +10,29 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown } from 'lucide-react';
+import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, onMoveUp, onMoveDown, isFirst, isLast }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, onMoveUp?: (id: string) => void, onMoveDown?: (id: string) => void, isFirst?: boolean, isLast?: boolean }) => (
   <div className={cn(
@@ -89,6 +110,7 @@ export function RotacionDeportiva() {
   const [teamB, setTeamB] = useState<Team>({ name: 'Equipo B', players: [] });
   const [championsTeam, setChampionsTeam] = useState<Team | null>(null);
   const [newPlayerName, setNewPlayerName] = useState('');
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   
   const [championRule, setChampionRule] = useState(false);
   const [winsToChampion, setWinsToChampion] = useState(2);
@@ -155,9 +177,36 @@ export function RotacionDeportiva() {
       return waitingListIds.map(id => waitingPlayersMap.get(id)).filter(Boolean) as Player[];
   }, [players, waitingListIds]);
 
+  const sortedPlayersByWins = useMemo(() => {
+    return [...players].sort((a, b) => b.wins - a.wins);
+  }, [players]);
+
   useEffect(() => {
     setChampionRule(waitingPlayers.length >= 10);
   }, [waitingPlayers.length]);
+
+  const handleResetDay = () => {
+    setPlayers([]);
+    setWaitingListIds([]);
+    setTeamA({ name: 'Equipo A', players: [] });
+    setTeamB({ name: 'Equipo B', players: [] });
+    setChampionsTeam(null);
+    setNewPlayerName('');
+    
+    // Clear specific localStorage items
+    localStorage.removeItem(STORAGE_KEYS.PLAYERS);
+    localStorage.removeItem(STORAGE_KEYS.WAITING_LIST);
+    localStorage.removeItem(STORAGE_KEYS.TEAM_A);
+    localStorage.removeItem(STORAGE_KEYS.TEAM_B);
+    localStorage.removeItem(STORAGE_KEYS.CHAMPIONS);
+    
+    setIsSummaryOpen(false); // Close the summary dialog
+    
+    toast({
+        title: "Día Finalizado",
+        description: "Todos los datos han sido reiniciados. ¡Hasta la próxima!",
+    });
+  };
 
   const handleAddPlayer = () => {
     let playerName = newPlayerName.trim();
@@ -492,6 +541,73 @@ export function RotacionDeportiva() {
 
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
+                  <CardTitle className="font-headline flex items-center gap-2 text-sky-400">Acciones del Día</CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
+                      <DialogTrigger asChild>
+                          <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+                              <Newspaper className="mr-2 h-4 w-4"/>
+                              Finalizar el Día y Ver Resumen
+                          </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
+                          <DialogHeader>
+                              <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>
+                              <DialogDescription className="text-slate-400">
+                                  Estadísticas de los jugadores de hoy. ¡Buen juego a todos!
+                              </DialogDescription>
+                          </DialogHeader>
+                          <div className="max-h-[60vh] overflow-y-auto space-y-3 pr-4">
+                              {sortedPlayersByWins.length > 0 ? sortedPlayersByWins.map((player) => (
+                                  <div key={player.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                                      <div>
+                                          <p className="font-bold text-sky-400">{player.name}</p>
+                                          <p className="text-sm text-slate-300">
+                                              Juegos Jugados: {player.wins + player.losses}
+                                          </p>
+                                      </div>
+                                      <div className="text-right">
+                                          <p className="font-semibold text-emerald-400">Victorias: {player.wins}</p>
+                                          <p className="text-sm text-slate-400">Derrotas: {player.losses}</p>
+                                      </div>
+                                  </div>
+                              )) : (
+                                <p className="text-slate-500 text-center py-8">No se han registrado jugadores hoy.</p>
+                              )}
+                          </div>
+                          <DialogFooter className="sm:justify-between gap-2 mt-4 flex-col-reverse sm:flex-row">
+                              <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                      <Button variant="destructive" className="w-full sm:w-auto">
+                                          <RefreshCw className="mr-2 h-4 w-4"/>
+                                          Reiniciar Todo
+                                      </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="bg-slate-800 border-slate-700">
+                                      <AlertDialogHeader>
+                                          <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
+                                          <AlertDialogDescription className="text-slate-300">
+                                              Esta acción es irreversible. Se borrarán todos los jugadores, equipos y estadísticas guardadas.
+                                          </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                          <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+                                          <AlertDialogAction onClick={handleResetDay} className="bg-destructive hover:bg-red-700">Sí, reiniciar</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                  </AlertDialogContent>
+                              </AlertDialog>
+                              <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
+                                  Cerrar
+                              </Button>
+                          </DialogFooter>
+                      </DialogContent>
+                  </Dialog>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
                   <CardTitle className="font-headline flex items-center gap-2 text-sky-400"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
                   <CardDescription className="text-slate-400">Los jugadores se añaden a los equipos desde aquí.</CardDescription>
               </CardHeader>
@@ -614,3 +730,5 @@ export function RotacionDeportiva() {
     </div>
   );
 }
+
+    
