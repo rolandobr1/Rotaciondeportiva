@@ -1,38 +1,38 @@
 # Firebase Studio
 
-This is a NextJS starter in Firebase Studio.
+Este es un proyecto de inicio de NextJS en Firebase Studio.
 
-To get started, take a look at `src/app/page.tsx`.
+Para empezar, echa un vistazo a `src/app/page.tsx`.
 
-## Development
+## Desarrollo
 
-To run the development server:
+Para ejecutar el servidor de desarrollo:
 
 ```bash
 npm run dev
 ```
 
-## Deployment
+## Despliegue
 
-This application is configured for deployment with **Firebase App Hosting**.
+Esta aplicación está configurada para desplegarse con **Firebase App Hosting**.
 
-To deploy your application, you will need the [Firebase CLI](https://firebase.google.com/docs/cli).
+Para desplegar tu aplicación, necesitarás la [CLI de Firebase](https://firebase.google.com/docs/cli).
 
-1.  **Login to Firebase:**
+1.  **Inicia sesión en Firebase:**
     ```bash
     firebase login
     ```
 
-2.  **Initialize App Hosting:**
-    If you haven't already, associate this project with your Firebase project:
+2.  **Inicializa App Hosting:**
+    Si aún no lo has hecho, asocia este proyecto con tu proyecto de Firebase:
     ```bash
     firebase init apphosting
     ```
 
-3.  **Deploy:**
-    Run the following command to deploy your app:
+3.  **Desplegar:**
+    Ejecuta el siguiente comando para desplegar tu aplicación:
     ```bash
     firebase deploy --only apphosting
     ```
 
-After deployment, the Firebase CLI will provide you with the URL of your live application.
+Después del despliegue, la CLI de Firebase te proporcionará la URL de tu aplicación en vivo.
