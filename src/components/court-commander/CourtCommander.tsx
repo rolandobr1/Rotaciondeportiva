@@ -363,6 +363,43 @@ export function RotacionDeportiva() {
     }
   };
 
+  const handleRemoveFromChampionTeam = (playerId: string) => {
+    if (!championsTeam) return;
+
+    const playerToRemove = championsTeam.players.find(p => p.id === playerId);
+    if (!playerToRemove) return;
+
+    const nextPlayerFromWaitingList = waitingPlayers.length > 0 ? waitingPlayers[0] : null;
+
+    // Start with current champion players, minus the one being removed
+    let newChampionPlayers = championsTeam.players.filter(p => p.id !== playerId);
+    // Start with current waiting list
+    let newWaitingListIds = waitingListIds;
+
+    if (nextPlayerFromWaitingList) {
+        // A replacement is available
+        newChampionPlayers.push(nextPlayerFromWaitingList); // Add replacement to champions
+        newWaitingListIds = newWaitingListIds.slice(1); // Remove replacement from waiting list
+        toast({ title: "Rotación de Campeón", description: `${playerToRemove.name} vuelve a la cola. ${nextPlayerFromWaitingList.name} se une a los campeones.` });
+    } else {
+        // No replacement available
+        toast({ title: "Campeón en Espera", description: `${playerToRemove.name} ha vuelto a la lista de espera. El equipo campeón está incompleto.` });
+    }
+    
+    // Add the removed player to the end of the new waiting list
+    setWaitingListIds([...newWaitingListIds, playerId]);
+
+    // Update or dissolve the champion team
+    if (newChampionPlayers.length === 0) {
+        setChampionsTeam(null);
+    } else {
+        setChampionsTeam({
+            ...championsTeam,
+            players: newChampionPlayers,
+        });
+    }
+  };
+
   const handleMovePlayerUp = (playerId: string) => {
     setWaitingListIds(prevIds => {
       const index = prevIds.indexOf(playerId);
@@ -661,23 +698,26 @@ export function RotacionDeportiva() {
                 championsTeam ? "bg-gradient-to-br from-amber-500 to-yellow-400" : "bg-slate-800"
             )}>
                 {championsTeam ? (
-                    <div className="p-6 text-center text-white">
-                        <h2 className="font-headline text-3xl flex items-center justify-center gap-3 font-bold">
+                    <div className="p-6 text-white">
+                        <h2 className="font-headline text-3xl flex items-center justify-center gap-3 font-bold text-center">
                             <Trophy className="h-8 w-8" />
                             Campeón Descansando
                             <Trophy className="h-8 w-8" />
                         </h2>
-                        <p className="mt-2 text-amber-100 font-semibold">Racha Actual: {championsTeam.players[0].consecutiveWins} victorias</p>
-                        <p className="mt-1 text-sm text-amber-200/90">Esperando al ganador del partido interino para volver a entrar.</p>
+                        <p className="mt-2 text-amber-100 font-semibold text-center">Racha Actual: {championsTeam.players[0].consecutiveWins} victorias</p>
+                        <p className="mt-1 text-sm text-amber-200/90 text-center">Esperando al ganador del partido interino para volver a entrar.</p>
 
-                        <div className="mt-6 flex flex-wrap justify-center gap-2">
-                            {championsTeam.players.map(p => (
-                                <div key={p.id} className="border border-amber-200 bg-black/20 rounded-full px-4 py-1 text-sm font-medium">
-                                    {p.name} ({p.wins}/{p.losses})
-                                </div>
-                            ))}
+                        <div className="mt-4 space-y-2">
+                          {championsTeam.players.map(p => (
+                              <PlayerCard 
+                                  key={p.id} 
+                                  player={p} 
+                                  onRemove={handleRemoveFromChampionTeam}
+                                  isChampion 
+                              />
+                          ))}
                         </div>
-
+                        
                         <Button className="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white border-none" onClick={handleReturnChampionToWaitingList}>Devolver a la Lista de Espera</Button>
                     </div>
                 ) : (
