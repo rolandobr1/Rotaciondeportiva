@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import type { Player, Team } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw } from 'lucide-react';
+import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { toJpeg } from 'html-to-image';
 
 
 const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, onMoveUp, onMoveDown, isFirst, isLast, isTeamAFull, isTeamBFull }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, onMoveUp?: (id: string) => void, onMoveDown?: (id: string) => void, isFirst?: boolean, isLast?: boolean, isTeamAFull?: boolean, isTeamBFull?: boolean }) => (
@@ -115,6 +116,8 @@ export function RotacionDeportiva() {
   const [championRule, setChampionRule] = useState(false);
   const [winsToChampion, setWinsToChampion] = useState(2);
 
+  const summaryDialogRef = useRef<HTMLDivElement>(null);
+
   const { toast } = useToast();
 
   const STORAGE_KEYS = useMemo(() => ({
@@ -184,6 +187,33 @@ export function RotacionDeportiva() {
   useEffect(() => {
     setChampionRule(waitingPlayers.length >= 10);
   }, [waitingPlayers.length]);
+
+  const handleDownloadSummary = () => {
+    if (summaryDialogRef.current === null) {
+      return;
+    }
+
+    toJpeg(summaryDialogRef.current, {
+      quality: 0.95,
+      filter: (node) => node.id !== 'summary-dialog-footer',
+      backgroundColor: '#1e293b' // slate-800
+    })
+      .then((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = 'resumen-del-dia.jpg';
+        link.href = dataUrl;
+        link.click();
+        link.remove();
+      })
+      .catch((err) => {
+        console.error('oops, something went wrong!', err);
+        toast({
+            variant: "destructive",
+            title: "Error al generar imagen",
+            description: "No se pudo crear la imagen del resumen."
+        });
+      });
+  };
 
   const handleResetDay = () => {
     setPlayers([]);
@@ -609,7 +639,7 @@ export function RotacionDeportiva() {
                               Finalizar el Día y Ver Resumen
                           </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
+                      <DialogContent ref={summaryDialogRef} className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
                           <DialogHeader>
                               <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>
                               <DialogDescription className="text-slate-400">
@@ -634,30 +664,36 @@ export function RotacionDeportiva() {
                                 <p className="text-slate-500 text-center py-8">No se han registrado jugadores hoy.</p>
                               )}
                           </div>
-                          <DialogFooter className="sm:justify-between gap-2 mt-4 flex-col-reverse sm:flex-row">
-                              <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                      <Button variant="destructive" className="w-full sm:w-auto">
-                                          <RefreshCw className="mr-2 h-4 w-4"/>
-                                          Reiniciar Todo
-                                      </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent className="bg-slate-800 border-slate-700">
-                                      <AlertDialogHeader>
-                                          <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
-                                          <AlertDialogDescription className="text-slate-300">
-                                              Esta acción es irreversible. Se borrarán todos los jugadores, equipos y estadísticas guardadas.
-                                          </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                          <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
-                                          <AlertDialogAction onClick={handleResetDay} className="bg-destructive hover:bg-red-700">Sí, reiniciar</AlertDialogAction>
-                                      </AlertDialogFooter>
-                                  </AlertDialogContent>
-                              </AlertDialog>
-                              <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
-                                  Cerrar
-                              </Button>
+                          <DialogFooter id="summary-dialog-footer" className="sm:justify-between gap-2 mt-4 flex-col-reverse sm:flex-row">
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" className="w-full sm:w-auto">
+                                            <RefreshCw className="mr-2 h-4 w-4"/>
+                                            Reiniciar Todo
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent className="bg-slate-800 border-slate-700">
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
+                                            <AlertDialogDescription className="text-slate-300">
+                                                Esta acción es irreversible. Se borrarán todos los jugadores, equipos y estadísticas guardadas.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleResetDay} className="bg-destructive hover:bg-red-700">Sí, reiniciar</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                                <div className="flex flex-col-reverse sm:flex-row gap-2">
+                                    <Button onClick={handleDownloadSummary} className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white">
+                                        <Share2 className="mr-2 h-4 w-4"/>
+                                        Descargar JPG
+                                    </Button>
+                                    <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
+                                        Cerrar
+                                    </Button>
+                                </div>
                           </DialogFooter>
                       </DialogContent>
                   </Dialog>
@@ -793,5 +829,3 @@ export function RotacionDeportiva() {
     </div>
   );
 }
-
-    
