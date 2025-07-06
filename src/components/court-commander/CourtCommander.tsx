@@ -8,10 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { runBalanceTeams, runGetTeamRecommendation } from '@/app/actions';
-import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, Sparkles, Loader2, Info } from 'lucide-react';
+import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const initialPlayers: Player[] = [
@@ -84,10 +82,6 @@ export function RotacionDeportiva() {
   const [championRule, setChampionRule] = useState(true);
   const [winsToChampion, setWinsToChampion] = useState(2);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [aiRecommendation, setAiRecommendation] = useState<string | null>(null);
-  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
-
   const { toast } = useToast();
 
   const waitingPlayers = useMemo(() => players.filter(p => waitingListIds.includes(p.id)), [players, waitingListIds]);
@@ -150,7 +144,6 @@ export function RotacionDeportiva() {
     } else {
       setTeamB(t => ({...t, players: [...t.players, player]}));
     }
-    setAiRecommendation(null);
   };
 
   const handleRemoveFromTeam = (playerId: string) => {
@@ -160,60 +153,6 @@ export function RotacionDeportiva() {
     setTeamA(t => ({ ...t, players: t.players.filter(p => p.id !== playerId)}));
     setTeamB(t => ({ ...t, players: t.players.filter(p => p.id !== playerId)}));
     setWaitingListIds(ids => [...ids, playerId]);
-    setAiRecommendation(null);
-  };
-
-  const handleAutoBalance = async () => {
-    if (waitingPlayers.length < 2) {
-        toast({ variant: 'destructive', title: "Jugadores insuficientes", description: "Se necesitan al menos 2 jugadores en la lista de espera para equilibrar los equipos." });
-        return;
-    }
-    setIsLoading(true);
-    setAiExplanation(null);
-    setAiRecommendation(null);
-
-    const result = await runBalanceTeams({ 
-        players: waitingPlayers.map(p => ({ id: p.id, name: p.name, winRate: p.winRate })), 
-        teamCount: 2 
-    });
-    
-    if(result && result.teams) {
-        const balancedTeamA = result.teams.find(t => t.name === 'Equipo A') || result.teams[0];
-        const balancedTeamB = result.teams.find(t => t.name === 'Equipo B') || result.teams[1];
-        
-        const teamAPlayers = players.filter(p => balancedTeamA.playerIds.includes(p.id));
-        const teamBPlayers = players.filter(p => balancedTeamB.playerIds.includes(p.id));
-        
-        setTeamA({ name: 'Equipo A', players: teamAPlayers });
-        setTeamB({ name: 'Equipo B', players: teamBPlayers });
-        setWaitingListIds(ids => ids.filter(id => !balancedTeamA.playerIds.includes(id) && !balancedTeamB.playerIds.includes(id)));
-        setAiExplanation(result.explanation);
-    } else {
-        toast({ variant: 'destructive', title: "Error al Equilibrar", description: "No se pudieron equilibrar los equipos. Por favor, inténtalo de nuevo." });
-    }
-
-    setIsLoading(false);
-  };
-
-  const handleGetRecommendation = async () => {
-    if (teamA.players.length === 0 || teamB.players.length === 0) {
-        toast({ variant: 'destructive', title: "Jugadores insuficientes", description: "Ambos equipos deben tener al menos un jugador." });
-        return;
-    }
-    setIsLoading(true);
-    setAiRecommendation(null);
-    
-    const result = await runGetTeamRecommendation({
-        team1Players: teamA.players.map(p => ({name: p.name, winRate: p.winRate})),
-        team2Players: teamB.players.map(p => ({name: p.name, winRate: p.winRate})),
-    });
-
-    if(result && result.recommendation) {
-        setAiRecommendation(result.recommendation);
-    } else {
-        toast({ variant: 'destructive', title: "Error en la Recomendación", description: "No se pudo obtener una recomendación. Por favor, inténtalo de nuevo." });
-    }
-    setIsLoading(false);
   };
 
   const handleRecordWin = (winner: 'A' | 'B') => {
@@ -261,8 +200,6 @@ export function RotacionDeportiva() {
     
     setTeamA({ name: 'Equipo A', players: [] });
     setTeamB({ name: 'Equipo B', players: [] });
-    setAiRecommendation(null);
-    setAiExplanation(null);
   };
 
   const resetChampions = () => {
@@ -375,35 +312,9 @@ export function RotacionDeportiva() {
           <div className="lg:col-span-2 space-y-8">
             <Card className="bg-card/50">
                 <CardHeader>
-                    <CardTitle className="font-headline text-3xl">Formación de Equipos</CardTitle>
+                    <CardTitle className="font-headline text-3xl">Equipos Actuales</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="flex flex-col md:flex-row gap-4 justify-center">
-                        <Button size="lg" onClick={handleAutoBalance} disabled={isLoading || waitingPlayers.length < 2}>
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4"/>} 
-                            Equilibrar Equipos Automáticamente
-                        </Button>
-                        <Button size="lg" variant="secondary" onClick={handleGetRecommendation} disabled={isLoading || teamA.players.length === 0 || teamB.players.length === 0}>
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Info className="mr-2 h-4 w-4"/>} 
-                            Obtener Consejo de IA
-                        </Button>
-                    </div>
-
-                    {aiExplanation && (
-                        <Alert>
-                            <Sparkles className="h-4 w-4" />
-                            <AlertTitle className="font-headline">Explicación del Equilibrio por IA</AlertTitle>
-                            <AlertDescription>{aiExplanation}</AlertDescription>
-                        </Alert>
-                    )}
-                    {aiRecommendation && (
-                        <Alert variant="default" className="border-accent text-accent-foreground/80">
-                            <Info className="h-4 w-4 text-accent" />
-                            <AlertTitle className="font-headline text-accent">Recomendación de Equilibrio por IA</AlertTitle>
-                            <AlertDescription className="text-accent-foreground/80">{aiRecommendation}</AlertDescription>
-                        </Alert>
-                    )}
-
                     <div className="flex flex-col md:flex-row gap-6">
                         <TeamColumn team={teamA} onRemovePlayer={handleRemoveFromTeam} />
                         <TeamColumn team={teamB} onRemovePlayer={handleRemoveFromTeam} />
