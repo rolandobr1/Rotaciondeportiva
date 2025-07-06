@@ -27,7 +27,7 @@ const PlayerCard = ({ player, onRemove, onAssign, showAssign, isWaiting }: { pla
     <div>
       <p className="font-bold text-primary">{player.name}</p>
       <p className="text-xs text-muted-foreground">
-        W/L: {player.wins}/{player.losses} | Win Rate: {(player.winRate * 100).toFixed(0)}%
+        V/D: {player.wins}/{player.losses} | Tasa de Victorias: {(player.winRate * 100).toFixed(0)}%
       </p>
     </div>
     <div className="flex items-center gap-2">
@@ -59,13 +59,13 @@ const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (pla
                 <CardTitle className="flex items-center gap-2 font-headline text-2xl">
                     <Swords className="text-primary" /> {team.name}
                 </CardTitle>
-                <CardDescription>Avg. Win Rate: {(avgWinRate * 100).toFixed(0)}%</CardDescription>
+                <CardDescription>Tasa de Vic. Prom.: {(avgWinRate * 100).toFixed(0)}%</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
                 {team.players.length > 0 ? (
                     team.players.map(p => <PlayerCard key={p.id} player={p} onRemove={() => onRemovePlayer(p.id)} />)
                 ) : (
-                    <div className="text-center text-muted-foreground py-8">Add players to this team</div>
+                    <div className="text-center text-muted-foreground py-8">Añade jugadores a este equipo</div>
                 )}
             </CardContent>
         </Card>
@@ -75,8 +75,8 @@ const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (pla
 export function CourtCommander() {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [waitingListIds, setWaitingListIds] = useState<string[]>(initialPlayers.map(p => p.id));
-  const [teamA, setTeamA] = useState<Team>({ name: 'Team A', players: [] });
-  const [teamB, setTeamB] = useState<Team>({ name: 'Team B', players: [] });
+  const [teamA, setTeamA] = useState<Team>({ name: 'Equipo A', players: [] });
+  const [teamB, setTeamB] = useState<Team>({ name: 'Equipo B', players: [] });
   const [champions, setChampions] = useState<Player[]>([]);
   const [newPlayerName, setNewPlayerName] = useState('');
   
@@ -93,7 +93,7 @@ export function CourtCommander() {
 
   const handleAddPlayer = () => {
     if (newPlayerName.trim() === '') {
-      toast({ variant: 'destructive', title: "Error", description: "Player name cannot be empty." });
+      toast({ variant: 'destructive', title: "Error", description: "El nombre del jugador no puede estar vacío." });
       return;
     }
     const newPlayer: Player = {
@@ -107,7 +107,7 @@ export function CourtCommander() {
     setPlayers(prev => [...prev, newPlayer]);
     setWaitingListIds(prev => [...prev, newPlayer.id]);
     setNewPlayerName('');
-    toast({ title: "Player Added", description: `${newPlayer.name} is now on the waiting list.` });
+    toast({ title: "Jugador Añadido", description: `${newPlayer.name} está ahora en la lista de espera.` });
   };
 
   const handleRemovePlayer = (id: string) => {
@@ -143,7 +143,7 @@ export function CourtCommander() {
 
   const handleAutoBalance = async () => {
     if (waitingPlayers.length < 2) {
-        toast({ variant: 'destructive', title: "Not enough players", description: "Need at least 2 players in the waiting list to balance teams." });
+        toast({ variant: 'destructive', title: "Jugadores insuficientes", description: "Se necesitan al menos 2 jugadores en la lista de espera para equilibrar los equipos." });
         return;
     }
     setIsLoading(true);
@@ -156,18 +156,18 @@ export function CourtCommander() {
     });
     
     if(result && result.teams) {
-        const balancedTeamA = result.teams[0];
-        const balancedTeamB = result.teams[1];
+        const balancedTeamA = result.teams.find(t => t.name === 'Equipo A') || result.teams[0];
+        const balancedTeamB = result.teams.find(t => t.name === 'Equipo B') || result.teams[1];
         
         const teamAPlayers = players.filter(p => balancedTeamA.playerIds.includes(p.id));
         const teamBPlayers = players.filter(p => balancedTeamB.playerIds.includes(p.id));
         
-        setTeamA({ name: 'Team A', players: teamAPlayers });
-        setTeamB({ name: 'Team B', players: teamBPlayers });
+        setTeamA({ name: 'Equipo A', players: teamAPlayers });
+        setTeamB({ name: 'Equipo B', players: teamBPlayers });
         setWaitingListIds(ids => ids.filter(id => !balancedTeamA.playerIds.includes(id) && !balancedTeamB.playerIds.includes(id)));
         setAiExplanation(result.explanation);
     } else {
-        toast({ variant: 'destructive', title: "Balancing Failed", description: "Could not balance teams. Please try again." });
+        toast({ variant: 'destructive', title: "Error al Equilibrar", description: "No se pudieron equilibrar los equipos. Por favor, inténtalo de nuevo." });
     }
 
     setIsLoading(false);
@@ -175,7 +175,7 @@ export function CourtCommander() {
 
   const handleGetRecommendation = async () => {
     if (teamA.players.length === 0 || teamB.players.length === 0) {
-        toast({ variant: 'destructive', title: "Not enough players", description: "Both teams must have at least one player." });
+        toast({ variant: 'destructive', title: "Jugadores insuficientes", description: "Ambos equipos deben tener al menos un jugador." });
         return;
     }
     setIsLoading(true);
@@ -189,7 +189,7 @@ export function CourtCommander() {
     if(result && result.recommendation) {
         setAiRecommendation(result.recommendation);
     } else {
-        toast({ variant: 'destructive', title: "Recommendation Failed", description: "Could not get a recommendation. Please try again." });
+        toast({ variant: 'destructive', title: "Error en la Recomendación", description: "No se pudo obtener una recomendación. Por favor, inténtalo de nuevo." });
     }
     setIsLoading(false);
   };
@@ -199,7 +199,7 @@ export function CourtCommander() {
     const losingTeam = winner === 'A' ? teamB : teamA;
     
     if(winningTeam.players.length === 0 || losingTeam.players.length === 0) {
-        toast({variant: 'destructive', title: "Cannot record match", description: "Teams cannot be empty."});
+        toast({variant: 'destructive', title: "No se puede registrar el partido", description: "Los equipos no pueden estar vacíos."});
         return;
     }
 
@@ -231,14 +231,14 @@ export function CourtCommander() {
     
     if (championRule && newChampions.length > 0) {
         setChampions(prev => [...prev, ...newChampions]);
-        toast({title: "New Champions!", description: `${winningTeam.name} are now champions and will rest.`});
+        toast({title: "¡Nuevos Campeones!", description: `${winningTeam.name} ahora son campeones y descansarán.`});
     }
 
     const playersToWaitingList = [...teamA.players, ...teamB.players].filter(p => !championIds.has(p.id));
     setWaitingListIds(prev => [...new Set([...prev, ...playersToWaitingList.map(p => p.id)])]);
     
-    setTeamA({ name: 'Team A', players: [] });
-    setTeamB({ name: 'Team B', players: [] });
+    setTeamA({ name: 'Equipo A', players: [] });
+    setTeamB({ name: 'Equipo B', players: [] });
     setAiRecommendation(null);
     setAiExplanation(null);
   };
@@ -252,8 +252,8 @@ export function CourtCommander() {
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
       <main className="container mx-auto">
         <header className="text-center mb-8">
-            <h1 className="font-headline text-5xl md:text-6xl text-primary flex items-center justify-center gap-4"><Dribbble /> Court Commander</h1>
-            <p className="text-muted-foreground mt-2">AI-Powered Team Balancing for Your Next Game</p>
+            <h1 className="font-headline text-5xl md:text-6xl text-primary flex items-center justify-center gap-4"><Dribbble /> Comandante de Cancha</h1>
+            <p className="text-muted-foreground mt-2">Equilibrio de Equipos con IA para tu Próximo Partido</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -262,24 +262,24 @@ export function CourtCommander() {
           <div className="lg:col-span-1 space-y-8">
             <Card>
               <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2"><Plus/> Add New Player</CardTitle>
+                  <CardTitle className="font-headline flex items-center gap-2"><Plus/> Añadir Nuevo Jugador</CardTitle>
               </CardHeader>
               <CardContent>
                   <div className="flex gap-2">
                     <Input 
-                      placeholder="e.g., Michael Jordan" 
+                      placeholder="Ej., Michael Jordan" 
                       value={newPlayerName}
                       onChange={(e) => setNewPlayerName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer()}
                     />
-                    <Button onClick={handleAddPlayer} className="bg-accent hover:bg-accent/90 text-accent-foreground">Add</Button>
+                    <Button onClick={handleAddPlayer} className="bg-accent hover:bg-accent/90 text-accent-foreground">Añadir</Button>
                   </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2"><Users/> Waiting List ({waitingPlayers.length})</CardTitle>
+                  <CardTitle className="font-headline flex items-center gap-2"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
                 {waitingPlayers.length > 0 ? (
@@ -294,23 +294,23 @@ export function CourtCommander() {
                         />
                     ))
                 ) : (
-                    <p className="text-muted-foreground text-center py-4">No players waiting.</p>
+                    <p className="text-muted-foreground text-center py-4">No hay jugadores en espera.</p>
                 )}
               </CardContent>
             </Card>
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2"><Crown/> Champions' Circle ({champions.length})</CardTitle>
+                    <CardTitle className="font-headline flex items-center gap-2"><Crown/> Círculo de Campeones ({champions.length})</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                     <div className="flex items-center space-x-2 mb-4">
                         <Switch id="champion-rule" checked={championRule} onCheckedChange={setChampionRule} />
-                        <Label htmlFor="champion-rule">Enable Champion Rule</Label>
+                        <Label htmlFor="champion-rule">Habilitar Regla del Campeón</Label>
                     </div>
                     {championRule && (
                         <div className="flex items-center gap-2 mb-4">
-                            <Label htmlFor="wins-to-champion">Wins to be Champion:</Label>
+                            <Label htmlFor="wins-to-champion">Victorias para ser campeón:</Label>
                             <Input 
                                 id="wins-to-champion"
                                 type="number" 
@@ -325,10 +325,10 @@ export function CourtCommander() {
                     {champions.length > 0 ? (
                         champions.map(p => <PlayerCard key={p.id} player={p} onRemove={handleRemovePlayer}/>)
                     ) : (
-                        <p className="text-muted-foreground text-center py-4">No champions resting.</p>
+                        <p className="text-muted-foreground text-center py-4">No hay campeones descansando.</p>
                     )}
                     </div>
-                    {champions.length > 0 && <Button variant="outline" className="w-full mt-4" onClick={resetChampions}>Return Champions to Waiting List</Button>}
+                    {champions.length > 0 && <Button variant="outline" className="w-full mt-4" onClick={resetChampions}>Devolver Campeones a la Lista de Espera</Button>}
                 </CardContent>
             </Card>
           </div>
@@ -337,31 +337,31 @@ export function CourtCommander() {
           <div className="lg:col-span-2 space-y-8">
             <Card className="bg-card/50">
                 <CardHeader>
-                    <CardTitle className="font-headline text-3xl">Team Formation</CardTitle>
+                    <CardTitle className="font-headline text-3xl">Formación de Equipos</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="flex flex-col md:flex-row gap-4 justify-center">
                         <Button size="lg" onClick={handleAutoBalance} disabled={isLoading || waitingPlayers.length < 2}>
                             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4"/>} 
-                            Auto-Balance Teams
+                            Equilibrar Equipos Automáticamente
                         </Button>
                         <Button size="lg" variant="secondary" onClick={handleGetRecommendation} disabled={isLoading || teamA.players.length === 0 || teamB.players.length === 0}>
                             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Info className="mr-2 h-4 w-4"/>} 
-                            Get AI Balancing Tip
+                            Obtener Consejo de IA
                         </Button>
                     </div>
 
                     {aiExplanation && (
                         <Alert>
                             <Sparkles className="h-4 w-4" />
-                            <AlertTitle className="font-headline">AI Balancing Explanation</AlertTitle>
+                            <AlertTitle className="font-headline">Explicación del Equilibrio por IA</AlertTitle>
                             <AlertDescription>{aiExplanation}</AlertDescription>
                         </Alert>
                     )}
                     {aiRecommendation && (
                         <Alert variant="default" className="border-accent text-accent-foreground/80">
                             <Info className="h-4 w-4 text-accent" />
-                            <AlertTitle className="font-headline text-accent">AI Balancing Recommendation</AlertTitle>
+                            <AlertTitle className="font-headline text-accent">Recomendación de Equilibrio por IA</AlertTitle>
                             <AlertDescription className="text-accent-foreground/80">{aiRecommendation}</AlertDescription>
                         </Alert>
                     )}
@@ -374,13 +374,13 @@ export function CourtCommander() {
                     <Separator />
 
                     <div className="text-center space-y-4">
-                        <h3 className="font-headline text-2xl">Record Match Result</h3>
+                        <h3 className="font-headline text-2xl">Registrar Resultado del Partido</h3>
                         <div className="flex justify-center gap-4">
                             <Button variant="outline" size="lg" className="border-2 border-primary hover:bg-primary hover:text-primary-foreground" onClick={() => handleRecordWin('A')} disabled={teamA.players.length === 0 || teamB.players.length === 0}>
-                                <Trophy className="mr-2 h-4 w-4"/> Team A Won
+                                <Trophy className="mr-2 h-4 w-4"/> Ganó Equipo A
                             </Button>
                             <Button variant="outline" size="lg" className="border-2 border-primary hover:bg-primary hover:text-primary-foreground" onClick={() => handleRecordWin('B')} disabled={teamA.players.length === 0 || teamB.players.length === 0}>
-                                <Trophy className="mr-2 h-4 w-4"/> Team B Won
+                                <Trophy className="mr-2 h-4 w-4"/> Ganó Equipo B
                             </Button>
                         </div>
                     </div>

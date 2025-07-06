@@ -3,11 +3,11 @@
 'use server';
 
 /**
- * @fileOverview Provides AI-driven team balancing suggestions based on manual assignments.
+ * @fileOverview Proporciona sugerencias de equilibrio de equipos impulsadas por IA basadas en asignaciones manuales.
  *
- * - getTeamRecommendation - A function that takes player assignments and suggests balancing adjustments.
- * - GetTeamRecommendationInput - The input type for the getTeamRecommendation function.
- * - GetTeamRecommendationOutput - The return type for the getTeamRecommendation function.
+ * - getTeamRecommendation - Una función que toma las asignaciones de jugadores y sugiere ajustes de equilibrio.
+ * - GetTeamRecommendationInput - El tipo de entrada para la función getTeamRecommendation.
+ * - GetTeamRecommendationOutput - El tipo de retorno para la función getTeamRecommendation.
  */
 
 import {ai} from '@/ai/genkit';
@@ -16,10 +16,10 @@ import {z} from 'genkit';
 const GetTeamRecommendationInputSchema = z.object({
   team1Players: z
     .array(z.object({name: z.string(), winRate: z.number()}))
-    .describe('The players currently assigned to team 1, with their win rates.'),
+    .describe('Los jugadores actualmente asignados al equipo 1, con sus tasas de victoria.'),
   team2Players: z
     .array(z.object({name: z.string(), winRate: z.number()}))
-    .describe('The players currently assigned to team 2, with their win rates.'),
+    .describe('Los jugadores actualmente asignados al equipo 2, con sus tasas de victoria.'),
 });
 export type GetTeamRecommendationInput = z.infer<
   typeof GetTeamRecommendationInputSchema
@@ -29,7 +29,7 @@ const GetTeamRecommendationOutputSchema = z.object({
   recommendation: z
     .string()
     .describe(
-      'A suggestion on how to balance the teams, considering player win rates. Suggest specific player swaps if necessary.'
+      'Una sugerencia sobre cómo equilibrar los equipos, considerando las tasas de victoria de los jugadores. Sugiere intercambios específicos de jugadores si es necesario.'
     ),
 });
 export type GetTeamRecommendationOutput = z.infer<
@@ -46,19 +46,19 @@ const prompt = ai.definePrompt({
   name: 'getTeamRecommendationPrompt',
   input: {schema: GetTeamRecommendationInputSchema},
   output: {schema: GetTeamRecommendationOutputSchema},
-  prompt: `You are an AI assistant that helps balance teams in a game.
+  prompt: `Eres un asistente de IA que ayuda a equilibrar los equipos en un juego.
 
-  Based on the current team compositions and player win rates, suggest a way to balance the teams.
-  Consider suggesting specific player swaps between teams if necessary to achieve a better balance.
+  Basado en las composiciones actuales de los equipos y las tasas de victoria de los jugadores, sugiere una forma de equilibrar los equipos.
+  Considera sugerir intercambios de jugadores específicos entre los equipos si es necesario para lograr un mejor equilibrio.
 
-  Team 1 Players:
+  Jugadores del Equipo 1:
   {{#each team1Players}}
-  - {{name}} (Win Rate: {{winRate}})
+  - {{name}} (Tasa de Victoria: {{winRate}})
   {{/each}}
 
-  Team 2 Players:
+  Jugadores del Equipo 2:
   {{#each team2Players}}
-  - {{name}} (Win Rate: {{winRate}})
+  - {{name}} (Tasa de Victoria: {{winRate}})
   {{/each}}
   `,
 });

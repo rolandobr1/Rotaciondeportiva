@@ -1,37 +1,37 @@
 'use server';
 /**
- * @fileOverview An AI agent for balancing teams based on player win rates.
+ * @fileOverview Un agente de IA para equilibrar equipos basado en las tasas de victorias de los jugadores.
  *
- * - balanceTeamsWithAI - A function that balances teams based on player win rates.
- * - BalanceTeamsWithAIInput - The input type for the balanceTeamsWithAI function.
- * - BalanceTeamsWithAIOutput - The return type for the balanceTeamsWithAI function.
+ * - balanceTeamsWithAI - Una función que equilibra equipos en función de las tasas de victorias de los jugadores.
+ * - BalanceTeamsWithAIInput - El tipo de entrada para la función balanceTeamsWithAI.
+ * - BalanceTeamsWithAIOutput - El tipo de retorno para la función balanceTeamsWithAI.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const PlayerSchema = z.object({
-  id: z.string().describe('The unique identifier of the player.'),
-  name: z.string().describe('The name of the player.'),
-  winRate: z.number().describe('The win rate of the player (0 to 1).'),
+  id: z.string().describe('El identificador único del jugador.'),
+  name: z.string().describe('El nombre del jugador.'),
+  winRate: z.number().describe('La tasa de victorias del jugador (de 0 a 1).'),
 });
 
 const BalanceTeamsWithAIInputSchema = z.object({
-  players: z.array(PlayerSchema).describe('The list of players available to form teams.'),
-  teamCount: z.number().int().min(2).describe('The number of teams to create.'),
+  players: z.array(PlayerSchema).describe('La lista de jugadores disponibles para formar equipos.'),
+  teamCount: z.number().int().min(2).describe('El número de equipos a crear.'),
 });
 export type BalanceTeamsWithAIInput = z.infer<typeof BalanceTeamsWithAIInputSchema>;
 
 const TeamSchema = z.object({
-  name: z.string().describe('The name of the team.'),
-  playerIds: z.array(z.string()).describe('The list of player IDs in the team.'),
+  name: z.string().describe('El nombre del equipo.'),
+  playerIds: z.array(z.string()).describe('La lista de IDs de jugadores en el equipo.'),
 });
 
 const BalanceTeamsWithAIOutputSchema = z.object({
-  teams: z.array(TeamSchema).describe('The list of balanced teams.'),
+  teams: z.array(TeamSchema).describe('La lista de equipos equilibrados.'),
   explanation: z
     .string()
-    .describe('An explanation of how the teams were balanced.'),
+    .describe('Una explicación de cómo se equilibraron los equipos.'),
 });
 
 export type BalanceTeamsWithAIOutput = z.infer<typeof BalanceTeamsWithAIOutputSchema>;
@@ -44,20 +44,20 @@ const prompt = ai.definePrompt({
   name: 'balanceTeamsPrompt',
   input: {schema: BalanceTeamsWithAIInputSchema},
   output: {schema: BalanceTeamsWithAIOutputSchema},
-  prompt: `You are an expert at balancing teams for a game based on player win rates.
+  prompt: `Eres un experto en equilibrar equipos para un juego basado en las tasas de victoria de los jugadores.
 
-Given the following list of players and their win rates, create {{teamCount}} teams that are as balanced as possible.
+Dada la siguiente lista de jugadores y sus tasas de victoria, crea {{teamCount}} equipos que sean lo más equilibrados posible.
 
-Players:
+Jugadores:
 {{#each players}}
-- {{name}} (ID: {{id}}, Win Rate: {{winRate}})
+- {{name}} (ID: {{id}}, Tasa de Victoria: {{winRate}})
 {{/each}}
 
-Teams should be named Team A, Team B, Team C, etc.
+Los equipos deben llamarse Equipo A, Equipo B, Equipo C, etc.
 
-Return the list of teams with player IDs and an explanation of how you balanced the teams.
+Devuelve la lista de equipos con los IDs de los jugadores y una explicación de cómo equilibraste los equipos.
 
-Ensure each player is assigned to exactly one team.
+Asegúrate de que cada jugador sea asignado exactamente a un equipo.
 `,
 });
 
