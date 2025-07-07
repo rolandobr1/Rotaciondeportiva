@@ -30,9 +30,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import { toJpeg } from 'html-to-image';
 
 
 const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, onMoveUp, onMoveDown, isFirst, isLast, isTeamAFull, isTeamBFull }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, onMoveUp?: (id: string) => void, onMoveDown?: (id: string) => void, isFirst?: boolean, isLast?: boolean, isTeamAFull?: boolean, isTeamBFull?: boolean }) => (
@@ -115,6 +114,7 @@ export function RotacionDeportiva() {
   
   const [championRule, setChampionRule] = useState(false);
   const [winsToChampion, setWinsToChampion] = useState(2);
+  const [isConfirmDisableChampionsOpen, setIsConfirmDisableChampionsOpen] = useState(false);
 
   const summaryDialogRef = useRef<HTMLDivElement>(null);
 
@@ -184,35 +184,74 @@ export function RotacionDeportiva() {
     return [...players].sort((a, b) => b.wins - a.wins);
   }, [players]);
 
-  useEffect(() => {
-    setChampionRule(waitingPlayers.length >= 10);
-  }, [waitingPlayers.length]);
+    useEffect(() => {
+        setChampionRule(waitingPlayers.length >= 10);
+    }, [waitingPlayers.length]);
 
-  const handleDownloadSummary = () => {
+
+  const handleChampionRuleToggle = (checked: boolean) => {
+    if (checked) {
+      if (waitingPlayers.length < 10) {
+        toast({
+          variant: 'destructive',
+          title: "No se puede activar",
+          description: "Se necesitan al menos 10 jugadores en espera para activar la Regla del Campeón.",
+        });
+        return;
+      }
+      setChampionRule(true);
+      toast({ title: "Regla del Campeón Activada" });
+    } else {
+      if (championsTeam) {
+        setIsConfirmDisableChampionsOpen(true);
+      } else {
+        setChampionRule(false);
+        toast({ title: "Regla del Campeón Desactivada" });
+      }
+    }
+  };
+
+  const handleConfirmDisableChampionRule = () => {
+    setChampionRule(false);
+    if (championsTeam) {
+      setWaitingListIds(prev => [...prev, ...championsTeam.players.map(p => p.id)]);
+      setChampionsTeam(null);
+      toast({
+        title: "Regla Desactivada",
+        description: "El equipo campeón ha sido disuelto y sus jugadores están en la lista de espera.",
+      });
+    } else {
+      toast({ title: "Regla del Campeón Desactivada" });
+    }
+    setIsConfirmDisableChampionsOpen(false);
+  };
+
+  const handleDownloadSummary = async () => {
     if (summaryDialogRef.current === null) {
       return;
     }
-
-    toJpeg(summaryDialogRef.current, {
-      quality: 0.95,
-      filter: (node) => node.id !== 'summary-dialog-footer',
-      backgroundColor: '#1e293b' // slate-800
-    })
-      .then((dataUrl) => {
-        const link = document.createElement('a');
-        link.download = 'resumen-del-dia.jpg';
-        link.href = dataUrl;
-        link.click();
-        link.remove();
-      })
-      .catch((err) => {
-        console.error('oops, something went wrong!', err);
-        toast({
-            variant: "destructive",
-            title: "Error al generar imagen",
-            description: "No se pudo crear la imagen del resumen."
-        });
+    
+    try {
+      const { toJpeg } = await import('html-to-image');
+      const dataUrl = await toJpeg(summaryDialogRef.current, {
+        quality: 0.95,
+        filter: (node: HTMLElement) => node.id !== 'summary-dialog-footer',
+        backgroundColor: '#1e293b'
       });
+
+      const link = document.createElement('a');
+      link.download = 'resumen-del-dia.jpg';
+      link.href = dataUrl;
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error('oops, something went wrong!', err);
+      toast({
+          variant: "destructive",
+          title: "Error al generar imagen",
+          description: "No se pudo crear la imagen del resumen."
+      });
+    }
   };
 
   const handleResetDay = () => {
@@ -537,7 +576,7 @@ export function RotacionDeportiva() {
         const newChampionPlayers = winningTeamCurrentPlayers;
 
         const newChampionName = `Campeones`;
-        toast({title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansarán.`});
+        toast({title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansar\xe1n.`});
         
         setChampionsTeam({ name: newChampionName, players: newChampionPlayers });
 
@@ -615,6 +654,20 @@ export function RotacionDeportiva() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-4 md:p-8">
       <main className="container mx-auto">
+        <AlertDialog open={isConfirmDisableChampionsOpen} onOpenChange={setIsConfirmDisableChampionsOpen}>
+            <AlertDialogContent className="bg-slate-800 border-slate-700">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-amber-400">¿Desactivar Regla del Campeón?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-slate-300">
+                        Esta acción disolverá el equipo campeón actual y devolverá a sus jugadores a la lista de espera. ¿Estás seguro?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel className="border-slate-600 hover:bg-slate-700" onClick={() => setIsConfirmDisableChampionsOpen(false)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmDisableChampionRule} className="bg-destructive hover:bg-red-700">Sí, desactivar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
         <header className="text-center mb-8">
             <h1 className="font-bold text-5xl md:text-6xl text-sky-400 flex items-center justify-center gap-4"><Flame /> Rotación Deportiva</h1>
             <p className="text-slate-400 mt-2">Gestión de equipos para partidos amistosos</p>
@@ -782,17 +835,18 @@ export function RotacionDeportiva() {
                                 <Switch
                                     id="champion-rule"
                                     checked={championRule}
-                                    disabled
+                                    disabled={!championRule && waitingPlayers.length < 10}
+                                    onCheckedChange={handleChampionRuleToggle}
                                 />
                                 <Label htmlFor="champion-rule">
-                                    Regla activada automáticamente
+                                    {championRule ? 'Regla activada' : 'Regla desactivada'}
                                 </Label>
                             </div>
                             <p className="text-xs mb-4 text-slate-400">
-                                Se activa con 10 o más jugadores en espera.
+                                { championRule ? 'El equipo campeón descansará.' : 'Se activa con 10 o más jugadores en espera.'}
                             </p>
                             <div className="flex items-center gap-2 my-4">
-                                <Label htmlFor="wins-to-champion">Victorias para ser campeón:</Label>
+                                <Label htmlFor="wins-to-champion">Victorias para ser campe\xf3n:</Label>
                                 <Input
                                     id="wins-to-champion"
                                     type="number"
