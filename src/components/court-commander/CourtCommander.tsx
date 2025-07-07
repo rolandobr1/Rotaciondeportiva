@@ -14,12 +14,12 @@ import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDo
 import { cn } from '@/lib/utils';
 import {
   Dialog,
+  DialogTrigger,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -87,7 +87,7 @@ const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (pla
     }, [team.players]);
 
     return (
-        <Card className="bg-slate-800/80 border-slate-700">
+        <Card className="flex-1 min-w-[280px] bg-slate-800/80 border-slate-700">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-2xl text-sky-400">
                     <Swords /> {team.name}
@@ -624,7 +624,7 @@ export function RotacionDeportiva() {
   
   if (!isLoaded) {
       return (
-          <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-4 md:p-8 flex items-center justify-center">
+          <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-2 sm:p-4 flex items-center justify-center">
               <div className="text-center">
                   <h1 className="font-bold text-5xl md:text-6xl text-sky-400">Cargando...</h1>
               </div>
@@ -633,8 +633,8 @@ export function RotacionDeportiva() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-4 md:p-8">
-      <main className="container mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-2 sm:p-4">
+      <main className="w-full max-w-7xl mx-auto">
         <AlertDialog open={isConfirmDisableChampionsOpen} onOpenChange={setIsConfirmDisableChampionsOpen}>
             <AlertDialogContent className="bg-slate-800 border-slate-700">
                 <AlertDialogHeader>
