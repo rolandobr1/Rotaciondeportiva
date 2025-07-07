@@ -19,7 +19,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -87,7 +86,7 @@ const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (pla
     }, [team.players]);
 
     return (
-        <Card className="flex-1 min-w-[280px] bg-slate-800/80 border-slate-700">
+        <Card className="bg-slate-800/80 border-slate-700">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-2xl text-sky-400">
                     <Swords /> {team.name}
@@ -186,16 +185,6 @@ export function RotacionDeportiva() {
   const sortedPlayersByWins = useMemo(() => {
     return [...players].sort((a, b) => b.wins - a.wins);
   }, [players]);
-
-  const activePlayers = useMemo(() => {
-    const playerIds = new Set<string>();
-    teamA.players.forEach(p => playerIds.add(p.id));
-    teamB.players.forEach(p => playerIds.add(p.id));
-    if (championsTeam) {
-        championsTeam.players.forEach(p => playerIds.add(p.id));
-    }
-    return Array.from(playerIds).map(id => players.find(p => p.id === id)).filter(Boolean) as Player[];
-  }, [players, teamA, teamB, championsTeam]);
 
     useEffect(() => {
         setChampionRule(waitingPlayers.length >= 10);
@@ -704,56 +693,26 @@ export function RotacionDeportiva() {
                                   Estadísticas de los jugadores de hoy. ¡Buen juego a todos!
                               </DialogDescription>
                           </DialogHeader>
-                           <Tabs defaultValue="general" className="w-full">
-                              <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="general">Ranking General</TabsTrigger>
-                                <TabsTrigger value="active">Jugadores Activos ({activePlayers.length})</TabsTrigger>
-                              </TabsList>
-                              <TabsContent value="general">
-                                <ScrollArea className="h-[40vh]">
-                                  <div className="space-y-3 pr-4">
-                                      {sortedPlayersByWins.length > 0 ? sortedPlayersByWins.map((player) => (
-                                          <div key={player.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
-                                              <div>
-                                                  <p className="font-bold text-sky-400">{player.name}</p>
-                                                  <p className="text-sm text-slate-300">
-                                                      Juegos Jugados: {player.wins + player.losses}
-                                                  </p>
-                                              </div>
-                                              <div className="text-right">
-                                                  <p className="font-semibold text-emerald-400">Victorias: {player.wins}</p>
-                                                  <p className="text-sm text-slate-400">Derrotas: {player.losses}</p>
-                                              </div>
-                                          </div>
-                                      )) : (
-                                        <p className="text-slate-500 text-center py-8">No se han registrado jugadores hoy.</p>
-                                      )}
-                                  </div>
-                                </ScrollArea>
-                              </TabsContent>
-                              <TabsContent value="active">
-                                <ScrollArea className="h-[40vh]">
-                                   <div className="space-y-3 pr-4">
-                                      {activePlayers.length > 0 ? activePlayers.map((player) => (
-                                          <div key={player.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
-                                              <div>
-                                                  <p className="font-bold text-sky-400">{player.name}</p>
-                                                  <p className="text-sm text-slate-300">
-                                                      Juegos Jugados: {player.wins + player.losses}
-                                                  </p>
-                                              </div>
-                                              <div className="text-right">
-                                                  <p className="font-semibold text-emerald-400">Victorias: {player.wins}</p>
-                                                  <p className="text-sm text-slate-400">Derrotas: {player.losses}</p>
-                                              </div>
-                                          </div>
-                                      )) : (
-                                        <p className="text-slate-500 text-center py-8">No hay jugadores activos.</p>
-                                      )}
-                                  </div>
-                                </ScrollArea>
-                              </TabsContent>
-                            </Tabs>
+                          <ScrollArea className="h-[60vh]">
+                            <div className="space-y-3 pr-4">
+                                {sortedPlayersByWins.length > 0 ? sortedPlayersByWins.map((player) => (
+                                    <div key={player.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                                        <div>
+                                            <p className="font-bold text-sky-400">{player.name}</p>
+                                            <p className="text-sm text-slate-300">
+                                                Juegos Jugados: {player.wins + player.losses}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-semibold text-emerald-400">Victorias: {player.wins}</p>
+                                            <p className="text-sm text-slate-400">Derrotas: {player.losses}</p>
+                                        </div>
+                                    </div>
+                                )) : (
+                                <p className="text-slate-500 text-center py-8">No se han registrado jugadores hoy.</p>
+                                )}
+                            </div>
+                          </ScrollArea>
                           <DialogFooter id="summary-dialog-footer" className="sm:justify-between gap-2 mt-4 flex-col-reverse sm:flex-row">
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -902,10 +861,18 @@ export function RotacionDeportiva() {
                     {championsTeam && <CardDescription className="text-yellow-400">El ganador de este partido se enfrentará al campeón: {championsTeam.name}</CardDescription>}
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="flex flex-col md:flex-row gap-6">
-                        <TeamColumn team={teamA} onRemovePlayer={handleRemoveFromTeam} />
-                        <TeamColumn team={teamB} onRemovePlayer={handleRemoveFromTeam} />
-                    </div>
+                    <Tabs defaultValue="team-a" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="team-a">{teamA.name}</TabsTrigger>
+                            <TabsTrigger value="team-b">{teamB.name}</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="team-a">
+                            <TeamColumn team={teamA} onRemovePlayer={handleRemoveFromTeam} />
+                        </TabsContent>
+                        <TabsContent value="team-b">
+                            <TeamColumn team={teamB} onRemovePlayer={handleRemoveFromTeam} />
+                        </TabsContent>
+                    </Tabs>
 
                     <Separator className="bg-slate-700"/>
 
@@ -928,3 +895,5 @@ export function RotacionDeportiva() {
     </div>
   );
 }
+
+    
