@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import type { Player, Team } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw, Share2, X as CloseIcon } from 'lucide-react';
+import { Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw, X as CloseIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -36,7 +35,6 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
 
 const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, onMoveUp, onMoveDown, isFirst, isLast, isTeamAFull, isTeamBFull }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, onMoveUp?: (id: string) => void, onMoveDown?: (id: string) => void, isFirst?: boolean, isLast?: boolean, isTeamAFull?: boolean, isTeamBFull?: boolean }) => (
   <div className={cn(
@@ -106,6 +104,36 @@ const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (pla
     );
 };
 
+// Helper function to update player stats after a match
+const updatePlayerStats = (players: Player[], winningTeam: Team, losingTeam: Team, championsTeam?: Team | null): Player[] => {
+  return players.map(p => {
+    if (winningTeam.players.some(wp => wp.id === p.id)) {
+      const newWins = p.wins + 1;
+      return {
+        ...p,
+        wins: newWins,
+        consecutiveWins: (p.consecutiveWins || 0) + 1,
+        winRate: newWins / (newWins + p.losses),
+      };
+    }
+    if (losingTeam.players.some(lp => lp.id === p.id)) {
+      const newLosses = p.losses + 1;
+      return {
+        ...p,
+        losses: newLosses,
+        consecutiveWins: 0,
+        winRate: p.wins / (p.wins + newLosses),
+      };
+    }
+    // Reset consecutive wins for resting champions if they didn't play
+    if (championsTeam && championsTeam.players.some(cp => cp.id === p.id)) {
+        return { ...p, consecutiveWins: 0 };
+    }
+    return p;
+  });
+};
+
+
 export function RotacionDeportiva() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -120,7 +148,6 @@ export function RotacionDeportiva() {
   const [winsToChampion, setWinsToChampion] = useState(2);
   const [isConfirmDisableChampionsOpen, setIsConfirmDisableChampionsOpen] = useState(false);
 
-  const summaryRef = useRef(null);
   const { toast } = useToast();
 
   const STORAGE_KEYS = useMemo(() => ({
@@ -180,7 +207,6 @@ export function RotacionDeportiva() {
 
   const waitingPlayers = useMemo(() => {
       const waitingPlayersMap = new Map(players.map(p => [p.id, p]));
-      const originalPlayerOrder = players.map(p => p.id);
       return waitingListIds
           .map(id => waitingPlayersMap.get(id))
           .filter(Boolean) as Player[];
@@ -459,6 +485,85 @@ export function RotacionDeportiva() {
     });
   };
 
+  const handleInterimMatchWin = (winningTeamData: Team, losingTeamData: Team) => {
+      toast({ title: "Partido Interino Finalizado", description: `El ${winningTeamData.name} se enfrentará al campe\xf3n.` });
+
+      const updatedPlayers = updatePlayerStats(players, winningTeamData, losingTeamData, championsTeam);
+      const updatedPlayerMap = new Map(updatedPlayers.map(p => [p.id, p]));
+
+      const newChampionsPlayers = championsTeam!.players.map(p => updatedPlayerMap.get(p.id)!);
+      const newChallengers = winningTeamData.players.map(p => updatedPlayerMap.get(p.id)!);
+      
+      setPlayers(updatedPlayers);
+      setTeamA({ name: `Equipo ${newChampionsPlayers[0].name}`, players: newChampionsPlayers });
+      setTeamB({ name: `Equipo ${newChallengers[0].name}`, players: newChallengers });
+      setWaitingListIds(prev => [...prev, ...losingTeamData.players.map(p => p.id)]);
+      setChampionsTeam(null);
+  }
+
+  const handleNewChampions = (winningTeamData: Team, losingTeamData: Team, winningTeamPlayers: Player[], updatedPlayers: Player[]) => {
+      toast({title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansarán.`});
+      
+      setChampionsTeam({ name: "Campeones", players: winningTeamPlayers });
+
+      const losersToWaitingList = [...waitingListIds, ...losingTeamData.players.map(p => p.id)];
+
+      if (losersToWaitingList.length < 10) {
+          toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes jugadores en espera para un partido interino. Los equipos se han vaciado." });
+          setTeamA({ name: 'Equipo A', players: [] });
+          setTeamB({ name: 'Equipo B', players: [] });
+          setWaitingListIds(losersToWaitingList);
+      } else {
+          const playersForInterim = losersToWaitingList.slice(0, 10).map(id => updatedPlayers.find(p => p.id === id)!);
+          setTeamA({ name: `Equipo ${playersForInterim[0].name}`, players: playersForInterim.slice(0, 5) });
+          setTeamB({ name: `Equipo ${playersForInterim[5].name}`, players: playersForInterim.slice(5, 10) });
+          setWaitingListIds(losersToWaitingList.slice(10));
+      }
+      setPlayers(updatedPlayers);
+  }
+
+  const handleStandardRotation = (winner: 'A'|'B', winningTeamPlayers: Player[], losingTeamData: Team, updatedPlayers: Player[]) => {
+      const losersToWaitingList = [...waitingListIds, ...losingTeamData.players.map(p => p.id)];
+      
+      const playersForNewTeamIds = losersToWaitingList.slice(0, 5);
+      
+      if (playersForNewTeamIds.length < 5) {
+          toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes retadores. El equipo ganador se queda solo." });
+          const winnerTeamWithStats = { name: `Equipo ${winningTeamPlayers[0].name}`, players: winningTeamPlayers };
+          
+          if (winner === 'A') {
+              setTeamA(winnerTeamWithStats);
+              setTeamB({ name: 'Equipo B', players: [] });
+          } else {
+              setTeamB(winnerTeamWithStats);
+              setTeamA({ name: 'Equipo A', players: [] });
+          }
+          setWaitingListIds(losersToWaitingList);
+      } else {
+          const remainingWaitingList = losersToWaitingList.slice(5);
+          const newChallengerPlayers = playersForNewTeamIds.map(id => updatedPlayers.find(p => p.id === id)!);
+          const newChallengers = {
+              name: `Equipo ${newChallengerPlayers[0].name}`,
+              players: newChallengerPlayers
+          };
+
+          const winnerTeamWithStats = {
+            name: (winner === 'A' ? teamA : teamB).name,
+            players: winningTeamPlayers,
+          };
+          
+          if (winner === 'A') {
+              setTeamA(winnerTeamWithStats);
+              setTeamB(newChallengers);
+          } else {
+              setTeamA(newChallengers);
+              setTeamB(winnerTeamWithStats);
+          }
+          setWaitingListIds(remainingWaitingList);
+      }
+      setPlayers(updatedPlayers);
+  }
+
   const handleRecordWin = (winner: 'A' | 'B') => {
     const winningTeamData = winner === 'A' ? teamA : teamB;
     const losingTeamData = winner === 'A' ? teamB : teamA;
@@ -467,135 +572,22 @@ export function RotacionDeportiva() {
         toast({variant: 'destructive', title: "Equipos incompletos", description: "Ambos equipos deben tener 5 jugadores."});
         return;
     }
-
+    
     if (championsTeam) {
-        toast({ title: "Partido Interino Finalizado", description: `El ${winningTeamData.name} se enfrentará al campe\xf3n.` });
-
-        const interimLosersIds = losingTeamData.players.map(p => p.id);
-        const newWaitingListIds = [...waitingListIds, ...interimLosersIds];
-        
-        const updatedPlayers = players.map(p => {
-            if (losingTeamData.players.some(lp => lp.id === p.id)) {
-                const newLosses = p.losses + 1;
-                return { ...p, losses: newLosses, consecutiveWins: 0, winRate: p.wins / (p.wins + newLosses) };
-            }
-            if (winningTeamData.players.some(wp => wp.id === p.id)) {
-                const newWins = p.wins + 1;
-                const existingConsecutiveWins = p.consecutiveWins || 0;
-                return { ...p, wins: newWins, consecutiveWins: existingConsecutiveWins + 1, winRate: newWins / (newWins + p.losses) };
-            }
-            if (championsTeam.players.some(cp => cp.id === p.id)) {
-                return { ...p, consecutiveWins: 0 };
-            }
-            return p;
-        });
-
-        const updatedPlayerMap = new Map(updatedPlayers.map(p => [p.id, p]));
-
-        const newChampionsPlayers = championsTeam.players.map(p => updatedPlayerMap.get(p.id)).filter(Boolean) as Player[];
-        const newInterimWinnersPlayers = winningTeamData.players.map(p => updatedPlayerMap.get(p.id)).filter(Boolean) as Player[];
-        
-        const newChampionsTeam = {
-            name: `Equipo ${newChampionsPlayers[0].name}`,
-            players: newChampionsPlayers
-        };
-
-        const newInterimWinnersTeam = {
-            name: `Equipo ${newInterimWinnersPlayers[0].name}`,
-            players: newInterimWinnersPlayers
-        };
-        
-        setPlayers(updatedPlayers);
-        setTeamA(newChampionsTeam);
-        setTeamB(newInterimWinnersTeam);
-        setWaitingListIds(newWaitingListIds);
-        setChampionsTeam(null);
-        return;
+      handleInterimMatchWin(winningTeamData, losingTeamData);
+      return;
     }
 
-    let masterPlayerList = players.map(p => {
-        if (winningTeamData.players.some(wp => wp.id === p.id)) {
-            const newWins = p.wins + 1;
-            const existingConsecutiveWins = p.consecutiveWins || 0;
-            return { ...p, wins: newWins, consecutiveWins: existingConsecutiveWins + 1, winRate: newWins / (newWins + p.losses) };
-        }
-        if (losingTeamData.players.some(lp => lp.id === p.id)) {
-            const newLosses = p.losses + 1;
-            return { ...p, losses: newLosses, consecutiveWins: 0, winRate: p.wins / (p.wins + newLosses) };
-        }
-        return p;
-    });
-    
-    const masterPlayerMap = new Map(masterPlayerList.map(p => [p.id, p]));
-    
-    const winningTeamCurrentPlayers = winningTeamData.players.map(p => masterPlayerMap.get(p.id)!);
-
-    const losersToWaitingList = [...waitingListIds, ...losingTeamData.players.map(p => p.id)];
-    
-    const finalConsecutiveWins = winningTeamCurrentPlayers.length > 0 ? masterPlayerMap.get(winningTeamCurrentPlayers[0].id)!.consecutiveWins : 0;
+    const updatedPlayers = updatePlayerStats(players, winningTeamData, losingTeamData);
+    const updatedPlayerMap = new Map(updatedPlayers.map(p => [p.id, p]));
+    const winningTeamCurrentPlayers = winningTeamData.players.map(p => updatedPlayerMap.get(p.id)!);
+    const finalConsecutiveWins = winningTeamCurrentPlayers.length > 0 ? winningTeamCurrentPlayers[0].consecutiveWins : 0;
 
     if (championRule && finalConsecutiveWins >= winsToChampion) {
-        const newChampionPlayers = winningTeamCurrentPlayers;
-
-        const newChampionName = `Campeones`;
-        toast({title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansar\xe1n.`});
-        
-        setChampionsTeam({ name: newChampionName, players: newChampionPlayers });
-
-        if (losersToWaitingList.length < 10) {
-            toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes jugadores en espera para un partido interino. Los equipos se han vaciado." });
-            setTeamA({ name: 'Equipo A', players: [] });
-            setTeamB({ name: 'Equipo B', players: [] });
-            setWaitingListIds(losersToWaitingList);
-        } else {
-            const playersForInterim = losersToWaitingList.slice(0, 10).map(id => masterPlayerList.find(p => p.id === id)!);
-            const interimTeamAPlayers = playersForInterim.slice(0, 5);
-            const interimTeamBPlayers = playersForInterim.slice(5, 10);
-            setTeamA({ name: `Equipo ${interimTeamAPlayers[0].name}`, players: interimTeamAPlayers });
-            setTeamB({ name: `Equipo ${interimTeamBPlayers[0].name}`, players: interimTeamBPlayers });
-            setWaitingListIds(losersToWaitingList.slice(10));
-        }
-        setPlayers(masterPlayerList);
-        return;
-    }
-
-    const playersForNewTeamIds = losersToWaitingList.slice(0, 5);
-    if (playersForNewTeamIds.length < 5) {
-        toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes retadores. El equipo ganador se queda solo." });
-        const winnerPlayers = winningTeamCurrentPlayers;
-        const winnerTeamWithStats = { name: `Equipo ${winnerPlayers[0].name}`, players: winnerPlayers };
-        
-        if (winner === 'A') {
-            setTeamA(winnerTeamWithStats);
-            setTeamB({ name: 'Equipo B', players: [] });
-        } else {
-            setTeamB(winnerTeamWithStats);
-            setTeamA({ name: 'Equipo A', players: [] });
-        }
-        setWaitingListIds(losersToWaitingList);
+      handleNewChampions(winningTeamData, losingTeamData, winningTeamCurrentPlayers, updatedPlayers);
     } else {
-        const remainingWaitingList = losersToWaitingList.slice(5);
-        const newChallengerPlayers = playersForNewTeamIds.map(id => masterPlayerList.find(p => p.id === id)!);
-        const newChallengers = {
-            name: `Equipo ${newChallengerPlayers[0].name}`,
-            players: newChallengerPlayers
-        };
-
-        const winnerTeamWithStats = {
-          name: winningTeamData.name,
-          players: winningTeamCurrentPlayers,
-        };
-        
-        if (winner === 'A') {
-            setTeamA(winnerTeamWithStats);
-            setTeamB(newChallengers);
-        } else {
-            setTeamA(newChallengers);
-            setTeamB(winnerTeamWithStats);
-        }
-        setWaitingListIds(remainingWaitingList);
+      handleStandardRotation(winner, winningTeamCurrentPlayers, losingTeamData, updatedPlayers);
     }
-    setPlayers(masterPlayerList);
   };
 
   const handleReturnChampionToWaitingList = () => {
@@ -611,12 +603,12 @@ export function RotacionDeportiva() {
       ...(championsTeam ? championsTeam.players.map(p => p.id) : []),
     ]);
 
-    const originalPlayerOrder = players.map(p => p.id);
-    const playersToReturn = originalPlayerOrder.filter(id => activePlayerIds.has(id));
+    const playersToReturn = players
+      .filter(p => activePlayerIds.has(p.id))
+      .map(p => p.id);
       
     const newWaitingList = [...waitingListIds, ...playersToReturn]
-      .filter((id, index, self) => self.indexOf(id) === index) 
-      .sort((a,b) => originalPlayerOrder.indexOf(a) - originalPlayerOrder.indexOf(b));
+      .filter((id, index, self) => self.indexOf(id) === index);
 
     setWaitingListIds(newWaitingList);
     
@@ -659,7 +651,7 @@ export function RotacionDeportiva() {
         </AlertDialog>
         <header className="text-center mb-8">
             <h1 className="font-bold text-3xl sm:text-4xl md:text-5xl text-sky-400 flex items-center justify-center gap-4 whitespace-nowrap">
-                <Image src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" width={48} height={48} className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"/>
+                <img src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"/>
                 Rotación Deportiva
             </h1>
             <p className="text-slate-400 mt-2">Gestión de equipos para partidos amistosos</p>
@@ -848,7 +840,7 @@ export function RotacionDeportiva() {
                                               Finalizar el Día y Ver Resumen
                                           </Button>
                                       </DialogTrigger>
-                                       <DialogContent ref={summaryRef} className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
+                                       <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
                                           <DialogHeader>
                                               <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>
                                               <DialogDescription className="text-slate-400">
@@ -897,7 +889,6 @@ export function RotacionDeportiva() {
                                                     </AlertDialogContent>
                                                 </AlertDialog>
                                                 <div className="flex flex-col-reverse sm:flex-row gap-2">
-                                                    
                                                     <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
                                                         Cerrar
                                                     </Button>
