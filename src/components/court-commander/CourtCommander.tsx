@@ -676,81 +676,6 @@ export function RotacionDeportiva() {
             </Card>
 
             <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sky-400">Acciones del Día</CardTitle>
-              </CardHeader>
-              <CardContent>
-                  <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
-                      <DialogTrigger asChild>
-                          <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
-                              <Newspaper className="mr-2 h-4 w-4"/>
-                              Finalizar el Día y Ver Resumen
-                          </Button>
-                      </DialogTrigger>
-                       <DialogContent ref={summaryDialogRef} className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
-                          <DialogHeader>
-                              <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>
-                              <DialogDescription className="text-slate-400">
-                                  Estadísticas de los jugadores de hoy. ¡Buen juego a todos!
-                              </DialogDescription>
-                          </DialogHeader>
-                          <ScrollArea className="h-[60vh]">
-                            <div className="space-y-3 pr-4">
-                                {sortedPlayersByWins.length > 0 ? sortedPlayersByWins.map((player) => (
-                                    <div key={player.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
-                                        <div>
-                                            <p className="font-bold text-sky-400">{player.name}</p>
-                                            <p className="text-sm text-slate-300">
-                                                Juegos Jugados: {player.wins + player.losses}
-                                            </p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-semibold text-emerald-400">Victorias: {player.wins}</p>
-                                            <p className="text-sm text-slate-400">Derrotas: {player.losses}</p>
-                                        </div>
-                                    </div>
-                                )) : (
-                                <p className="text-slate-500 text-center py-8">No se han registrado jugadores hoy.</p>
-                                )}
-                            </div>
-                          </ScrollArea>
-                          <DialogFooter id="summary-dialog-footer" className="sm:justify-between gap-2 mt-4 flex-col-reverse sm:flex-row">
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" className="w-full sm:w-auto">
-                                            <RefreshCw className="mr-2 h-4 w-4"/>
-                                            Reiniciar Todo
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent className="bg-slate-800 border-slate-700">
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
-                                            <AlertDialogDescription className="text-slate-300">
-                                                Esta acción es irreversible. Se borrarán todos los jugadores, equipos y estadísticas guardadas.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleResetDay} className="bg-destructive hover:bg-red-700">Sí, reiniciar</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                                <div className="flex flex-col-reverse sm:flex-row gap-2">
-                                    <Button onClick={handleDownloadSummary} className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white">
-                                        <Share2 className="mr-2 h-4 w-4"/>
-                                        Descargar JPG
-                                    </Button>
-                                    <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
-                                        Cerrar
-                                    </Button>
-                                </div>
-                          </DialogFooter>
-                      </DialogContent>
-                  </Dialog>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800 border-slate-700">
                 <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
                     <AccordionItem value="item-1" className="border-b-0">
                         <AccordionTrigger className="p-6 hover:no-underline">
@@ -786,6 +711,7 @@ export function RotacionDeportiva() {
                     </AccordionItem>
                 </Accordion>
             </Card>
+            
             <Card className={cn(
                 "border-slate-700 transition-all",
                 championsTeam ? "bg-gradient-to-br from-amber-500 to-yellow-400" : "bg-slate-800"
@@ -862,6 +788,81 @@ export function RotacionDeportiva() {
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
+            </Card>
+
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-sky-400">Acciones del Día</CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
+                      <DialogTrigger asChild>
+                          <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+                              <Newspaper className="mr-2 h-4 w-4"/>
+                              Finalizar el Día y Ver Resumen
+                          </Button>
+                      </DialogTrigger>
+                       <DialogContent ref={summaryDialogRef} className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
+                          <DialogHeader>
+                              <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>
+                              <DialogDescription className="text-slate-400">
+                                  Estadísticas de los jugadores de hoy. ¡Buen juego a todos!
+                              </DialogDescription>
+                          </DialogHeader>
+                          <ScrollArea className="h-[60vh]">
+                            <div className="space-y-3 pr-4">
+                                {sortedPlayersByWins.length > 0 ? sortedPlayersByWins.map((player) => (
+                                    <div key={player.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                                        <div>
+                                            <p className="font-bold text-sky-400">{player.name}</p>
+                                            <p className="text-sm text-slate-300">
+                                                Juegos Jugados: {player.wins + player.losses}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-semibold text-emerald-400">Victorias: {player.wins}</p>
+                                            <p className="text-sm text-slate-400">Derrotas: {player.losses}</p>
+                                        </div>
+                                    </div>
+                                )) : (
+                                <p className="text-slate-500 text-center py-8">No se han registrado jugadores hoy.</p>
+                                )}
+                            </div>
+                          </ScrollArea>
+                          <DialogFooter id="summary-dialog-footer" className="sm:justify-between gap-2 mt-4 flex-col-reverse sm:flex-row">
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" className="w-full sm:w-auto">
+                                            <RefreshCw className="mr-2 h-4 w-4"/>
+                                            Reiniciar Todo
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent className="bg-slate-800 border-slate-700">
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
+                                            <AlertDialogDescription className="text-slate-300">
+                                                Esta acción es irreversible. Se borrarán todos los jugadores, equipos y estadísticas guardadas.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleResetDay} className="bg-destructive hover:bg-red-700">Sí, reiniciar</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                                <div className="flex flex-col-reverse sm:flex-row gap-2">
+                                    <Button onClick={handleDownloadSummary} className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white">
+                                        <Share2 className="mr-2 h-4 w-4"/>
+                                        Descargar JPG
+                                    </Button>
+                                    <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
+                                        Cerrar
+                                    </Button>
+                                </div>
+                          </DialogFooter>
+                      </DialogContent>
+                  </Dialog>
+              </CardContent>
             </Card>
 
           </div>
