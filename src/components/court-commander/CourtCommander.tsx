@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw, Share2 } from 'lucide-react';
+import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -119,8 +119,6 @@ export function RotacionDeportiva() {
   const [winsToChampion, setWinsToChampion] = useState(2);
   const [isConfirmDisableChampionsOpen, setIsConfirmDisableChampionsOpen] = useState(false);
 
-  const summaryDialogRef = useRef<HTMLDivElement>(null);
-
   const { toast } = useToast();
 
   const STORAGE_KEYS = useMemo(() => ({
@@ -227,34 +225,6 @@ export function RotacionDeportiva() {
       toast({ title: "Regla del Campeón Desactivada" });
     }
     setIsConfirmDisableChampionsOpen(false);
-  };
-
-  const handleDownloadSummary = async () => {
-    if (summaryDialogRef.current === null) {
-      return;
-    }
-    
-    try {
-      const { toJpeg } = await import('html-to-image');
-      const dataUrl = await toJpeg(summaryDialogRef.current, {
-        quality: 0.95,
-        filter: (node: HTMLElement) => node.id !== 'summary-dialog-footer',
-        backgroundColor: '#1e293b'
-      });
-
-      const link = document.createElement('a');
-      link.download = 'resumen-del-dia.jpg';
-      link.href = dataUrl;
-      link.click();
-      link.remove();
-    } catch (err) {
-      console.error('oops, something went wrong!', err);
-      toast({
-          variant: "destructive",
-          title: "Error al generar imagen",
-          description: "No se pudo crear la imagen del resumen."
-      });
-    }
   };
 
   const handleResetDay = () => {
@@ -636,14 +606,12 @@ export function RotacionDeportiva() {
       ...(championsTeam ? championsTeam.players.map(p => p.id) : []),
     ]);
 
-    // Filter main players list to get only the ones that are active, preserving original registration order.
     const playersToReturn = players
       .filter(p => activePlayerIds.has(p.id))
       .map(p => p.id);
       
     setWaitingListIds(prev => [
       ...prev,
-      // Filter out any players that might already be in the waiting list, just in case.
       ...playersToReturn.filter(id => !prev.includes(id))
     ]);
     
@@ -747,12 +715,12 @@ export function RotacionDeportiva() {
                 </Accordion>
             </Card>
             
-            <Card className={cn(
-                "border-slate-700 transition-all",
-                championsTeam ? "bg-gradient-to-br from-amber-500 to-yellow-400" : "bg-slate-800"
-            )}>
-                <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="item-1" className="border-b-0">
+            <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="item-1" className="border-none">
+                    <Card className={cn(
+                        "border-slate-700 transition-all",
+                        championsTeam ? "bg-gradient-to-br from-amber-500 to-yellow-400" : "bg-slate-800"
+                    )}>
                         <AccordionTrigger className="p-6 hover:no-underline">
                              {championsTeam ? (
                                 <div className="text-white text-left w-full">
@@ -821,9 +789,9 @@ export function RotacionDeportiva() {
                                 </CardContent>
                             )}
                         </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-            </Card>
+                    </Card>
+                </AccordionItem>
+            </Accordion>
           </div>
 
           <div className="lg:col-span-2 space-y-8">
@@ -872,7 +840,7 @@ export function RotacionDeportiva() {
                                               Finalizar el Día y Ver Resumen
                                           </Button>
                                       </DialogTrigger>
-                                       <DialogContent ref={summaryDialogRef} className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
+                                       <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
                                           <DialogHeader>
                                               <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>
                                               <DialogDescription className="text-slate-400">
@@ -921,10 +889,6 @@ export function RotacionDeportiva() {
                                                     </AlertDialogContent>
                                                 </AlertDialog>
                                                 <div className="flex flex-col-reverse sm:flex-row gap-2">
-                                                    <Button onClick={handleDownloadSummary} className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white">
-                                                        <Share2 className="mr-2 h-4 w-4"/>
-                                                        Descargar JPG
-                                                    </Button>
                                                     <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
                                                         Cerrar
                                                     </Button>

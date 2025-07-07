@@ -4,7 +4,7 @@
   "description": "Gestiona y equilibra tus equipos de baloncesto con IA.",
   "id": "/",
   "start_url": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
@@ -53,9 +53,5 @@
       "form_factor": "wide",
       "label": "Vista de la aplicación en escritorio"
     }
-  ],
-  "dir": "auto",
-  "iarc_rating_id": null,
-  "related_applications": [],
-  "scope_extensions": []
+  ]
 }
