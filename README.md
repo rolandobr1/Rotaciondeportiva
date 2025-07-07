@@ -35,4 +35,10 @@ Para desplegar tu aplicación, necesitarás la [CLI de Firebase](https://firebas
     firebase deploy --only apphosting
     ```
 
+### Solución de Problemas
+Si al desplegar recibes un error que dice `webframeworks is not enabled`, ejecuta el siguiente comando y vuelve a intentarlo:
+```bash
+firebase experiments:enable webframeworks
+```
+
 Después del despliegue, la CLI de Firebase te proporcionará la URL de tu aplicación en vivo.
