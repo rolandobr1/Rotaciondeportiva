@@ -789,6 +789,43 @@ export function RotacionDeportiva() {
                     </AccordionItem>
                 </Accordion>
             </Card>
+          </div>
+
+          <div className="lg:col-span-2 space-y-8">
+            <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                    <CardTitle className="text-3xl text-sky-400">{championsTeam ? "Partido Interino" : "Equipos Actuales"}</CardTitle>
+                    {championsTeam && <CardDescription className="text-yellow-400">El ganador de este partido se enfrentará al campeón: {championsTeam.name}</CardDescription>}
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <Tabs defaultValue="team-a" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="team-a">{teamA.name}</TabsTrigger>
+                            <TabsTrigger value="team-b">{teamB.name}</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="team-a">
+                            <TeamColumn team={teamA} onRemovePlayer={handleRemoveFromTeam} />
+                        </TabsContent>
+                        <TabsContent value="team-b">
+                            <TeamColumn team={teamB} onRemovePlayer={handleRemoveFromTeam} />
+                        </TabsContent>
+                    </Tabs>
+
+                    <Separator className="bg-slate-700"/>
+
+                    <div className="text-center space-y-4">
+                        <h3 className="text-2xl text-sky-400">Registrar Resultado del Partido</h3>
+                        <div className="flex flex-wrap justify-center gap-4">
+                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('A')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
+                                <Trophy className="mr-2 h-4 w-4"/> Ganó {teamA.name}
+                            </Button>
+                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('B')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
+                                <Trophy className="mr-2 h-4 w-4"/> Ganó {teamB.name}
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
@@ -863,44 +900,6 @@ export function RotacionDeportiva() {
                       </DialogContent>
                   </Dialog>
               </CardContent>
-            </Card>
-
-          </div>
-
-          <div className="lg:col-span-2 space-y-8">
-            <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                    <CardTitle className="text-3xl text-sky-400">{championsTeam ? "Partido Interino" : "Equipos Actuales"}</CardTitle>
-                    {championsTeam && <CardDescription className="text-yellow-400">El ganador de este partido se enfrentará al campeón: {championsTeam.name}</CardDescription>}
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <Tabs defaultValue="team-a" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="team-a">{teamA.name}</TabsTrigger>
-                            <TabsTrigger value="team-b">{teamB.name}</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="team-a">
-                            <TeamColumn team={teamA} onRemovePlayer={handleRemoveFromTeam} />
-                        </TabsContent>
-                        <TabsContent value="team-b">
-                            <TeamColumn team={teamB} onRemovePlayer={handleRemoveFromTeam} />
-                        </TabsContent>
-                    </Tabs>
-
-                    <Separator className="bg-slate-700"/>
-
-                    <div className="text-center space-y-4">
-                        <h3 className="text-2xl text-sky-400">Registrar Resultado del Partido</h3>
-                        <div className="flex flex-wrap justify-center gap-4">
-                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('A')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
-                                <Trophy className="mr-2 h-4 w-4"/> Ganó {teamA.name}
-                            </Button>
-                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('B')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
-                                <Trophy className="mr-2 h-4 w-4"/> Ganó {teamB.name}
-                            </Button>
-                        </div>
-                    </div>
-                </CardContent>
             </Card>
           </div>
         </div>
