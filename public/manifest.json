@@ -2,10 +2,22 @@
   "name": "Rotación Deportiva",
   "short_name": "Rotación",
   "description": "Gestiona y equilibra tus equipos de baloncesto con IA.",
+  "id": "/",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
+  "scope": "/",
+  "lang": "es-ES",
+  "categories": [
+    "sports",
+    "games"
+  ],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "https://placehold.co/192x192.png",
@@ -20,10 +32,26 @@
       "purpose": "any"
     },
     {
-        "src": "https://placehold.co/512x512.png",
-        "sizes": "512x512",
-        "type": "image/png",
-        "purpose": "maskable"
+      "src": "https://placehold.co/512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://placehold.co/1080x1920.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Vista de la aplicación en móvil"
+    },
+    {
+      "src": "https://placehold.co/1920x1080.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Vista de la aplicación en escritorio"
     }
   ]
 }
