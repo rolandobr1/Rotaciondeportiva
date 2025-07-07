@@ -120,6 +120,7 @@ export function RotacionDeportiva() {
   const [winsToChampion, setWinsToChampion] = useState(2);
   const [isConfirmDisableChampionsOpen, setIsConfirmDisableChampionsOpen] = useState(false);
 
+  const summaryRef = useRef(null);
   const { toast } = useToast();
 
   const STORAGE_KEYS = useMemo(() => ({
@@ -577,8 +578,10 @@ export function RotacionDeportiva() {
             players: newChallengerPlayers
         };
 
-        const winnerPlayers = winningTeamCurrentPlayers;
-        const winnerTeamWithStats = { name: `Equipo ${winnerPlayers[0].name}`, players: winnerPlayers };
+        const winnerTeamWithStats = {
+          name: winningTeamData.name,
+          players: winningTeamCurrentPlayers,
+        };
         
         if (winner === 'A') {
             setTeamA(winnerTeamWithStats);
@@ -609,14 +612,12 @@ export function RotacionDeportiva() {
       .filter(p => activePlayerIds.has(p.id))
       .map(p => p.id);
       
-    setWaitingListIds(prev => {
-        const currentIds = new Set(prev);
-        playersToReturn.forEach(id => currentIds.add(id));
-        
-        const registeredPlayersOrder = players.map(p => p.id);
-        
-        return Array.from(currentIds).sort((a,b) => registeredPlayersOrder.indexOf(a) - registeredPlayersOrder.indexOf(b));
-    });
+    const originalPlayerOrder = players.map(p => p.id);
+    const newWaitingList = [...waitingListIds, ...playersToReturn]
+      .filter((id, index, self) => self.indexOf(id) === index) // remove duplicates
+      .sort((a,b) => originalPlayerOrder.indexOf(a) - originalPlayerOrder.indexOf(b));
+
+    setWaitingListIds(newWaitingList);
     
     setTeamA({ name: 'Equipo A', players: [] });
     setTeamB({ name: 'Equipo B', players: [] });
@@ -632,7 +633,7 @@ export function RotacionDeportiva() {
       return (
           <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-2 sm:p-4 flex items-center justify-center">
               <div className="text-center">
-                  <h1 className="font-bold text-5xl md:text-6xl text-sky-400">Cargando...</h1>
+                  <h1 className="font-bold text-5xl text-sky-400">Cargando...</h1>
               </div>
           </div>
       );
@@ -656,7 +657,7 @@ export function RotacionDeportiva() {
             </AlertDialogContent>
         </AlertDialog>
         <header className="text-center mb-8">
-            <h1 className="font-bold text-5xl text-sky-400 flex items-center justify-center gap-4">
+            <h1 className="font-bold text-5xl text-sky-400 flex items-center justify-center gap-4 whitespace-nowrap">
                 <Image src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" width={48} height={48} />
                 Rotación Deportiva
             </h1>
@@ -846,7 +847,7 @@ export function RotacionDeportiva() {
                                               Finalizar el Día y Ver Resumen
                                           </Button>
                                       </DialogTrigger>
-                                       <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
+                                       <DialogContent ref={summaryRef} className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
                                           <DialogHeader>
                                               <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>
                                               <DialogDescription className="text-slate-400">
@@ -895,6 +896,7 @@ export function RotacionDeportiva() {
                                                     </AlertDialogContent>
                                                 </AlertDialog>
                                                 <div className="flex flex-col-reverse sm:flex-row gap-2">
+                                                    
                                                     <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
                                                         Cerrar
                                                     </Button>
