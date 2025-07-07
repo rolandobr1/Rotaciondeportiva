@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import type { Player, Team } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Flame, Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw } from 'lucide-react';
+import { Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -523,16 +524,14 @@ export function RotacionDeportiva() {
     
     const masterPlayerMap = new Map(masterPlayerList.map(p => [p.id, p]));
     
-    const winningTeamCurrentPlayers = winningTeamData.players
-      .map(p => masterPlayerMap.get(p.id))
-      .filter(Boolean) as Player[];
+    const winningTeamCurrentPlayers = winningTeamData.players;
 
     const losersToWaitingList = [...waitingListIds, ...losingTeamData.players.map(p => p.id)];
     
-    const finalConsecutiveWins = winningTeamCurrentPlayers.length > 0 ? winningTeamCurrentPlayers[0].consecutiveWins : 0;
+    const finalConsecutiveWins = winningTeamCurrentPlayers.length > 0 ? masterPlayerMap.get(winningTeamCurrentPlayers[0].id)!.consecutiveWins : 0;
 
     if (championRule && finalConsecutiveWins >= winsToChampion) {
-        const newChampionPlayers = winningTeamCurrentPlayers;
+        const newChampionPlayers = winningTeamCurrentPlayers.map(p => masterPlayerMap.get(p.id)!);
 
         const newChampionName = `Campeones`;
         toast({title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansar\xe1n.`});
@@ -559,7 +558,7 @@ export function RotacionDeportiva() {
     const playersForNewTeamIds = losersToWaitingList.slice(0, 5);
     if (playersForNewTeamIds.length < 5) {
         toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes retadores. El equipo ganador se queda solo." });
-        const winnerPlayers = winningTeamCurrentPlayers;
+        const winnerPlayers = winningTeamCurrentPlayers.map(p => masterPlayerMap.get(p.id)!);
         const winnerTeamWithStats = { name: `Equipo ${winnerPlayers[0].name}`, players: winnerPlayers };
         
         if (winner === 'A') {
@@ -578,7 +577,7 @@ export function RotacionDeportiva() {
             players: newChallengerPlayers
         };
 
-        const winnerPlayers = winningTeamCurrentPlayers;
+        const winnerPlayers = winningTeamCurrentPlayers.map(p => masterPlayerMap.get(p.id)!);
         const winnerTeamWithStats = { name: `Equipo ${winnerPlayers[0].name}`, players: winnerPlayers };
         
         if (winner === 'A') {
@@ -610,10 +609,16 @@ export function RotacionDeportiva() {
       .filter(p => activePlayerIds.has(p.id))
       .map(p => p.id);
       
-    setWaitingListIds(prev => [
-      ...prev,
-      ...playersToReturn.filter(id => !prev.includes(id))
-    ]);
+    setWaitingListIds(prev => {
+        const currentIds = new Set(prev);
+        for (const id of playersToReturn) {
+            currentIds.add(id);
+        }
+        
+        const registeredPlayersOrder = players.map(p => p.id);
+        
+        return Array.from(currentIds).sort((a,b) => registeredPlayersOrder.indexOf(a) - registeredPlayersOrder.indexOf(b));
+    });
     
     setTeamA({ name: 'Equipo A', players: [] });
     setTeamB({ name: 'Equipo B', players: [] });
@@ -653,7 +658,10 @@ export function RotacionDeportiva() {
             </AlertDialogContent>
         </AlertDialog>
         <header className="text-center mb-8">
-            <h1 className="font-bold text-5xl md:text-6xl text-sky-400 flex items-center justify-center gap-4"><Flame /> Rotación Deportiva</h1>
+            <h1 className="font-bold text-5xl md:text-6xl text-sky-400 flex items-center justify-center gap-4">
+                <Image src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" width={48} height={48} />
+                Rotación Deportiva
+            </h1>
             <p className="text-slate-400 mt-2">Gestión de equipos para partidos amistosos</p>
         </header>
 
@@ -684,7 +692,7 @@ export function RotacionDeportiva() {
                         <AccordionTrigger className="p-6 hover:no-underline">
                             <div className="flex flex-col items-start w-full">
                                <CardTitle className="flex items-center gap-2 text-sky-400"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
-                               <CardDescription className="text-slate-400 pt-2">Los jugadores se añaden a los equipos desde aquí.</CardDescription>
+                               <CardDescription className="text-slate-400 pt-2">Los jugadores se añaden a los equipos desde aqu\xed.</CardDescription>
                             </div>
                         </AccordionTrigger>
                         <AccordionContent>
