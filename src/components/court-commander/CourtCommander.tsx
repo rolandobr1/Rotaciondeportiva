@@ -487,7 +487,7 @@ export function RotacionDeportiva() {
   const handleRecordWin = (winner: 'A' | 'B') => {
     const winningTeamData = winner === 'A' ? teamA : teamB;
     const losingTeamData = winner === 'A' ? teamB : teamA;
-    
+
     if (winningTeamData.players.length < 5 || losingTeamData.players.length < 5) {
         toast({variant: 'destructive', title: "Equipos incompletos", description: "Ambos equipos deben tener 5 jugadores."});
         return;
@@ -515,9 +515,11 @@ export function RotacionDeportiva() {
             return p;
         });
 
-        const newChampionsPlayers = updatedPlayers.filter(p => championsTeam.players.some(cp => cp.id === p.id));
-        const newInterimWinnersPlayers = updatedPlayers.filter(p => winningTeamData.players.some(wp => wp.id === p.id));
+        const updatedPlayerMap = new Map(updatedPlayers.map(p => [p.id, p]));
 
+        const newChampionsPlayers = championsTeam.players.map(p => updatedPlayerMap.get(p.id)).filter(Boolean) as Player[];
+        const newInterimWinnersPlayers = winningTeamData.players.map(p => updatedPlayerMap.get(p.id)).filter(Boolean) as Player[];
+        
         const newChampionsTeam = {
             name: `Equipo ${newChampionsPlayers[0].name}`,
             players: newChampionsPlayers
@@ -548,11 +550,16 @@ export function RotacionDeportiva() {
         }
         return p;
     });
+    
+    const masterPlayerMap = new Map(masterPlayerList.map(p => [p.id, p]));
+    
+    const winningTeamCurrentPlayers = winningTeamData.players
+      .map(p => masterPlayerMap.get(p.id))
+      .filter(Boolean) as Player[];
 
     const losersToWaitingList = [...waitingListIds, ...losingTeamData.players.map(p => p.id)];
     
-    const winningTeamCurrentPlayers = masterPlayerList.filter(p => winningTeamData.players.some(wp => wp.id === p.id));
-    const finalConsecutiveWins = winningTeamCurrentPlayers[0].consecutiveWins;
+    const finalConsecutiveWins = winningTeamCurrentPlayers.length > 0 ? winningTeamCurrentPlayers[0].consecutiveWins : 0;
 
     if (championRule && finalConsecutiveWins >= winsToChampion) {
         const newChampionPlayers = winningTeamCurrentPlayers;
@@ -582,7 +589,7 @@ export function RotacionDeportiva() {
     const playersForNewTeamIds = losersToWaitingList.slice(0, 5);
     if (playersForNewTeamIds.length < 5) {
         toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes retadores. El equipo ganador se queda solo." });
-        const winnerPlayers = masterPlayerList.filter(p => winningTeamData.players.some(wp => wp.id === p.id));
+        const winnerPlayers = winningTeamCurrentPlayers;
         const winnerTeamWithStats = { name: `Equipo ${winnerPlayers[0].name}`, players: winnerPlayers };
         
         if (winner === 'A') {
@@ -601,7 +608,7 @@ export function RotacionDeportiva() {
             players: newChallengerPlayers
         };
 
-        const winnerPlayers = masterPlayerList.filter(p => winningTeamData.players.some(wp => wp.id === p.id));
+        const winnerPlayers = winningTeamCurrentPlayers;
         const winnerTeamWithStats = { name: `Equipo ${winnerPlayers[0].name}`, players: winnerPlayers };
         
         if (winner === 'A') {
@@ -623,16 +630,23 @@ export function RotacionDeportiva() {
   };
 
   const handleSendAllToWaitingList = () => {
-    const activePlayerIds = [
+    const activePlayerIds = new Set([
       ...teamA.players.map(p => p.id),
       ...teamB.players.map(p => p.id),
       ...(championsTeam ? championsTeam.players.map(p => p.id) : []),
-    ];
-    
-    const uniqueActivePlayerIds = [...new Set(activePlayerIds)];
-    
-    setWaitingListIds(prev => [...prev, ...uniqueActivePlayerIds.filter(id => !prev.includes(id))]);
+    ]);
 
+    // Filter main players list to get only the ones that are active, preserving original registration order.
+    const playersToReturn = players
+      .filter(p => activePlayerIds.has(p.id))
+      .map(p => p.id);
+      
+    setWaitingListIds(prev => [
+      ...prev,
+      // Filter out any players that might already be in the waiting list, just in case.
+      ...playersToReturn.filter(id => !prev.includes(id))
+    ]);
+    
     setTeamA({ name: 'Equipo A', players: [] });
     setTeamB({ name: 'Equipo B', players: [] });
     setChampionsTeam(null);
@@ -844,105 +858,106 @@ export function RotacionDeportiva() {
                                 <Trophy className="mr-2 h-4 w-4"/> Ganó {teamB.name}
                             </Button>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sky-400">Acciones del Día</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
-                      <DialogTrigger asChild>
-                          <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
-                              <Newspaper className="mr-2 h-4 w-4"/>
-                              Finalizar el Día y Ver Resumen
-                          </Button>
-                      </DialogTrigger>
-                       <DialogContent ref={summaryDialogRef} className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
-                          <DialogHeader>
-                              <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>
-                              <DialogDescription className="text-slate-400">
-                                  Estadísticas de los jugadores de hoy. ¡Buen juego a todos!
-                              </DialogDescription>
-                          </DialogHeader>
-                          <ScrollArea className="h-[60vh]">
-                            <div className="space-y-3 pr-4">
-                                {sortedPlayersByWins.length > 0 ? sortedPlayersByWins.map((player) => (
-                                    <div key={player.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
-                                        <div>
-                                            <p className="font-bold text-sky-400">{player.name}</p>
-                                            <p className="text-sm text-slate-300">
-                                                Juegos Jugados: {player.wins + player.losses}
-                                            </p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-semibold text-emerald-400">Victorias: {player.wins}</p>
-                                            <p className="text-sm text-slate-400">Derrotas: {player.losses}</p>
-                                        </div>
-                                    </div>
-                                )) : (
-                                <p className="text-slate-500 text-center py-8">No se han registrado jugadores hoy.</p>
-                                )}
-                            </div>
-                          </ScrollArea>
-                          <DialogFooter id="summary-dialog-footer" className="sm:justify-between gap-2 mt-4 flex-col-reverse sm:flex-row">
-                                <AlertDialog>
+                         <div className="pt-4">
+                            <Card className="bg-slate-800 border-slate-700 max-w-sm mx-auto">
+                              <CardHeader>
+                                  <CardTitle className="flex items-center gap-2 text-sky-400">Acciones del Día</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                  <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
+                                      <DialogTrigger asChild>
+                                          <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+                                              <Newspaper className="mr-2 h-4 w-4"/>
+                                              Finalizar el Día y Ver Resumen
+                                          </Button>
+                                      </DialogTrigger>
+                                       <DialogContent ref={summaryDialogRef} className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
+                                          <DialogHeader>
+                                              <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>
+                                              <DialogDescription className="text-slate-400">
+                                                  Estadísticas de los jugadores de hoy. ¡Buen juego a todos!
+                                              </DialogDescription>
+                                          </DialogHeader>
+                                          <ScrollArea className="h-[60vh]">
+                                            <div className="space-y-3 pr-4">
+                                                {sortedPlayersByWins.length > 0 ? sortedPlayersByWins.map((player) => (
+                                                    <div key={player.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                                                        <div>
+                                                            <p className="font-bold text-sky-400">{player.name}</p>
+                                                            <p className="text-sm text-slate-300">
+                                                                Juegos Jugados: {player.wins + player.losses}
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="font-semibold text-emerald-400">Victorias: {player.wins}</p>
+                                                            <p className="text-sm text-slate-400">Derrotas: {player.losses}</p>
+                                                        </div>
+                                                    </div>
+                                                )) : (
+                                                <p className="text-slate-500 text-center py-8">No se han registrado jugadores hoy.</p>
+                                                )}
+                                            </div>
+                                          </ScrollArea>
+                                          <DialogFooter id="summary-dialog-footer" className="sm:justify-between gap-2 mt-4 flex-col-reverse sm:flex-row">
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="destructive" className="w-full sm:w-auto">
+                                                            <RefreshCw className="mr-2 h-4 w-4"/>
+                                                            Reiniciar Todo
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent className="bg-slate-800 border-slate-700">
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
+                                                            <AlertDialogDescription className="text-slate-300">
+                                                                Esta acción es irreversible. Se borrarán todos los jugadores, equipos y estadísticas guardadas.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={handleResetDay} className="bg-destructive hover:bg-red-700">Sí, reiniciar</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                                <div className="flex flex-col-reverse sm:flex-row gap-2">
+                                                    <Button onClick={handleDownloadSummary} className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white">
+                                                        <Share2 className="mr-2 h-4 w-4"/>
+                                                        Descargar JPG
+                                                    </Button>
+                                                    <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
+                                                        Cerrar
+                                                    </Button>
+                                                </div>
+                                          </DialogFooter>
+                                      </DialogContent>
+                                  </Dialog>
+                                  <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" className="w-full sm:w-auto">
-                                            <RefreshCw className="mr-2 h-4 w-4"/>
-                                            Reiniciar Todo
-                                        </Button>
+                                      <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700">
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        Enviar todos a espera
+                                      </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent className="bg-slate-800 border-slate-700">
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
-                                            <AlertDialogDescription className="text-slate-300">
-                                                Esta acción es irreversible. Se borrarán todos los jugadores, equipos y estadísticas guardadas.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleResetDay} className="bg-destructive hover:bg-red-700">Sí, reiniciar</AlertDialogAction>
-                                        </AlertDialogFooter>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
+                                        <AlertDialogDescription className="text-slate-300">
+                                            Esta acción moverá a todos los jugadores de los equipos y campeones a la lista de espera.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleSendAllToWaitingList} className="bg-destructive hover:bg-red-700">Sí, enviar a todos</AlertDialogAction>
+                                      </AlertDialogFooter>
                                     </AlertDialogContent>
-                                </AlertDialog>
-                                <div className="flex flex-col-reverse sm:flex-row gap-2">
-                                    <Button onClick={handleDownloadSummary} className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white">
-                                        <Share2 className="mr-2 h-4 w-4"/>
-                                        Descargar JPG
-                                    </Button>
-                                    <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
-                                        Cerrar
-                                    </Button>
+                                  </AlertDialog>
                                 </div>
-                          </DialogFooter>
-                      </DialogContent>
-                  </Dialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700">
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Enviar todos a espera
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-slate-800 border-slate-700">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-slate-300">
-                            Esta acción moverá a todos los jugadores de los equipos y campeones a la lista de espera.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleSendAllToWaitingList} className="bg-destructive hover:bg-red-700">Sí, enviar a todos</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </CardContent>
+                              </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </CardContent>
             </Card>
           </div>
         </div>
