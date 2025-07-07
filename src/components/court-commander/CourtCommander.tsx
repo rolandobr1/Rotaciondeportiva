@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw } from 'lucide-react';
+import { Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -524,7 +524,7 @@ export function RotacionDeportiva() {
     
     const masterPlayerMap = new Map(masterPlayerList.map(p => [p.id, p]));
     
-    const winningTeamCurrentPlayers = winningTeamData.players;
+    const winningTeamCurrentPlayers = winningTeamData.players.map(p => masterPlayerMap.get(p.id)!);
 
     const losersToWaitingList = [...waitingListIds, ...losingTeamData.players.map(p => p.id)];
     
@@ -558,7 +558,7 @@ export function RotacionDeportiva() {
     const playersForNewTeamIds = losersToWaitingList.slice(0, 5);
     if (playersForNewTeamIds.length < 5) {
         toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes retadores. El equipo ganador se queda solo." });
-        const winnerPlayers = winningTeamCurrentPlayers.map(p => masterPlayerMap.get(p.id)!);
+        const winnerPlayers = winningTeamCurrentPlayers;
         const winnerTeamWithStats = { name: `Equipo ${winnerPlayers[0].name}`, players: winnerPlayers };
         
         if (winner === 'A') {
@@ -577,7 +577,7 @@ export function RotacionDeportiva() {
             players: newChallengerPlayers
         };
 
-        const winnerPlayers = winningTeamCurrentPlayers.map(p => masterPlayerMap.get(p.id)!);
+        const winnerPlayers = winningTeamCurrentPlayers;
         const winnerTeamWithStats = { name: `Equipo ${winnerPlayers[0].name}`, players: winnerPlayers };
         
         if (winner === 'A') {
@@ -611,9 +611,7 @@ export function RotacionDeportiva() {
       
     setWaitingListIds(prev => {
         const currentIds = new Set(prev);
-        for (const id of playersToReturn) {
-            currentIds.add(id);
-        }
+        playersToReturn.forEach(id => currentIds.add(id));
         
         const registeredPlayersOrder = players.map(p => p.id);
         
@@ -658,7 +656,7 @@ export function RotacionDeportiva() {
             </AlertDialogContent>
         </AlertDialog>
         <header className="text-center mb-8">
-            <h1 className="font-bold text-5xl md:text-6xl text-sky-400 flex items-center justify-center gap-4">
+            <h1 className="font-bold text-5xl text-sky-400 flex items-center justify-center gap-4">
                 <Image src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" width={48} height={48} />
                 Rotación Deportiva
             </h1>
