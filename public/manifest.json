@@ -11,7 +11,7 @@
   "scope": "/",
   "lang": "es-ES",
   "dir": "auto",
-  "iarc_rating_id": "e5c89f2a-e31a-4d42-89c8-7d8194d3e528",
+  "iarc_rating_id": "e5f8f3c4-3b1a-4d73-9a3b-28de8e8b6b27",
   "categories": [
     "sports",
     "games"
@@ -20,6 +20,9 @@
     "client_mode": "focus-existing"
   },
   "prefer_related_applications": false,
+  "scope_extensions": [
+    { "origin": "*" }
+  ],
   "icons": [
     {
       "src": "/rotationicon.png",
