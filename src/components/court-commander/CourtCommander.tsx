@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw, Share2 } from 'lucide-react';
+import { Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw, Share2, X as CloseIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -180,7 +180,10 @@ export function RotacionDeportiva() {
 
   const waitingPlayers = useMemo(() => {
       const waitingPlayersMap = new Map(players.map(p => [p.id, p]));
-      return waitingListIds.map(id => waitingPlayersMap.get(id)).filter(Boolean) as Player[];
+      const originalPlayerOrder = players.map(p => p.id);
+      return waitingListIds
+          .map(id => waitingPlayersMap.get(id))
+          .filter(Boolean) as Player[];
   }, [players, waitingListIds]);
 
   const sortedPlayersByWins = useMemo(() => {
@@ -532,7 +535,7 @@ export function RotacionDeportiva() {
     const finalConsecutiveWins = winningTeamCurrentPlayers.length > 0 ? masterPlayerMap.get(winningTeamCurrentPlayers[0].id)!.consecutiveWins : 0;
 
     if (championRule && finalConsecutiveWins >= winsToChampion) {
-        const newChampionPlayers = winningTeamCurrentPlayers.map(p => masterPlayerMap.get(p.id)!);
+        const newChampionPlayers = winningTeamCurrentPlayers;
 
         const newChampionName = `Campeones`;
         toast({title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansar\xe1n.`});
@@ -608,13 +611,11 @@ export function RotacionDeportiva() {
       ...(championsTeam ? championsTeam.players.map(p => p.id) : []),
     ]);
 
-    const playersToReturn = players
-      .filter(p => activePlayerIds.has(p.id))
-      .map(p => p.id);
-      
     const originalPlayerOrder = players.map(p => p.id);
+    const playersToReturn = originalPlayerOrder.filter(id => activePlayerIds.has(id));
+      
     const newWaitingList = [...waitingListIds, ...playersToReturn]
-      .filter((id, index, self) => self.indexOf(id) === index) // remove duplicates
+      .filter((id, index, self) => self.indexOf(id) === index) 
       .sort((a,b) => originalPlayerOrder.indexOf(a) - originalPlayerOrder.indexOf(b));
 
     setWaitingListIds(newWaitingList);
@@ -657,8 +658,8 @@ export function RotacionDeportiva() {
             </AlertDialogContent>
         </AlertDialog>
         <header className="text-center mb-8">
-            <h1 className="font-bold text-5xl text-sky-400 flex items-center justify-center gap-4 whitespace-nowrap">
-                <Image src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" width={48} height={48} />
+            <h1 className="font-bold text-3xl sm:text-4xl md:text-5xl text-sky-400 flex items-center justify-center gap-4 whitespace-nowrap">
+                <Image src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" width={48} height={48} className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"/>
                 Rotación Deportiva
             </h1>
             <p className="text-slate-400 mt-2">Gestión de equipos para partidos amistosos</p>
