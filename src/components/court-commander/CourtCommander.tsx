@@ -786,73 +786,84 @@ export function RotacionDeportiva() {
                     </AccordionItem>
                 </Accordion>
             </Card>
-
             <Card className={cn(
                 "border-slate-700 transition-all",
                 championsTeam ? "bg-gradient-to-br from-amber-500 to-yellow-400" : "bg-slate-800"
             )}>
-                {championsTeam ? (
-                    <div className="p-6 text-white">
-                        <h2 className="text-3xl flex items-center justify-center gap-3 font-bold text-center">
-                            <Trophy className="h-8 w-8" />
-                            Campeón Descansando
-                            <Trophy className="h-8 w-8" />
-                        </h2>
-                        <p className="mt-2 text-amber-100 font-semibold text-center">Racha Actual: {championsTeam.players[0].consecutiveWins} victorias</p>
-                        <p className="mt-1 text-sm text-amber-200/90 text-center">Esperando al ganador del partido interino para volver a entrar.</p>
-
-                        <div className="mt-4 space-y-2">
-                          {championsTeam.players.map(p => (
-                              <PlayerCard 
-                                  key={p.id} 
-                                  player={p} 
-                                  onRemove={handleRemoveFromChampionTeam}
-                                  isChampion 
-                              />
-                          ))}
-                        </div>
-                        
-                        <Button className="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white border-none" onClick={handleReturnChampionToWaitingList}>Devolver a la Lista de Espera</Button>
-                    </div>
-                ) : (
-                    <>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-sky-400">
-                                <Crown /> Regla del Campeón
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center space-x-2 mb-2">
-                                <Switch
-                                    id="champion-rule"
-                                    checked={championRule}
-                                    disabled={!championRule && waitingPlayers.length < 10}
-                                    onCheckedChange={handleChampionRuleToggle}
-                                />
-                                <Label htmlFor="champion-rule">
-                                    {championRule ? 'Regla activada' : 'Regla desactivada'}
-                                </Label>
-                            </div>
-                            <p className="text-xs mb-4 text-slate-400">
-                                { championRule ? 'El equipo campeón descansará.' : 'Se activa con 10 o más jugadores en espera.'}
-                            </p>
-                            <div className="flex items-center gap-2 my-4">
-                                <Label htmlFor="wins-to-champion">Victorias para ser campe\xf3n:</Label>
-                                <Input
-                                    id="wins-to-champion"
-                                    type="number"
-                                    value={winsToChampion}
-                                    onChange={(e) => setWinsToChampion(Math.max(1, Number(e.target.value)))}
-                                    className="w-20 bg-slate-700 border-slate-600 text-white"
-                                    min="1"
-                                />
-                            </div>
-                            <Separator className='bg-slate-700' />
-                            <p className="text-center py-4 text-slate-500 mt-2">No hay un equipo campeón descansando.</p>
-                        </CardContent>
-                    </>
-                )}
+                <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="item-1" className="border-b-0">
+                        <AccordionTrigger className="p-6 hover:no-underline">
+                             {championsTeam ? (
+                                <div className="text-white text-left w-full">
+                                    <CardTitle className="flex items-center gap-2 text-white">
+                                        <Trophy className="h-6 w-6" /> Campeón Descansando
+                                    </CardTitle>
+                                    <CardDescription className="text-amber-100 pt-2">
+                                        Racha Actual: {championsTeam.players[0].consecutiveWins} victorias. Esperando retador.
+                                    </CardDescription>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-start w-full">
+                                    <CardTitle className="flex items-center gap-2 text-sky-400">
+                                        <Crown /> Regla del Campeón
+                                    </CardTitle>
+                                     <CardDescription className="text-slate-400 pt-2">
+                                        Configura las reglas para coronar a un equipo campeón.
+                                    </CardDescription>
+                                </div>
+                            )}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            {championsTeam ? (
+                                <CardContent className="px-6 pb-6 pt-0 text-white">
+                                    <div className="space-y-2">
+                                      {championsTeam.players.map(p => (
+                                          <PlayerCard 
+                                              key={p.id} 
+                                              player={p} 
+                                              onRemove={handleRemoveFromChampionTeam}
+                                              isChampion 
+                                          />
+                                      ))}
+                                    </div>
+                                    <Button className="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white border-none" onClick={handleReturnChampionToWaitingList}>Devolver a la Lista de Espera</Button>
+                                </CardContent>
+                            ) : (
+                                <CardContent className="px-6 pb-6 pt-0">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                        <Switch
+                                            id="champion-rule"
+                                            checked={championRule}
+                                            disabled={!championRule && waitingPlayers.length < 10}
+                                            onCheckedChange={handleChampionRuleToggle}
+                                        />
+                                        <Label htmlFor="champion-rule">
+                                            {championRule ? 'Regla activada' : 'Regla desactivada'}
+                                        </Label>
+                                    </div>
+                                    <p className="text-xs mb-4 text-slate-400">
+                                        { championRule ? 'El equipo campeón descansará.' : 'Se activa con 10 o más jugadores en espera.'}
+                                    </p>
+                                    <div className="flex items-center gap-2 my-4">
+                                        <Label htmlFor="wins-to-champion">Victorias para ser campe\xf3n:</Label>
+                                        <Input
+                                            id="wins-to-champion"
+                                            type="number"
+                                            value={winsToChampion}
+                                            onChange={(e) => setWinsToChampion(Math.max(1, Number(e.target.value)))}
+                                            className="w-20 bg-slate-700 border-slate-600 text-white"
+                                            min="1"
+                                        />
+                                    </div>
+                                    <Separator className='bg-slate-700' />
+                                    <p className="text-center py-4 text-slate-500 mt-2">No hay un equipo campeón descansando.</p>
+                                </CardContent>
+                            )}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
             </Card>
+
           </div>
 
           <div className="lg:col-span-2 space-y-8">
