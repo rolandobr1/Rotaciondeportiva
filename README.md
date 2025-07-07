@@ -42,3 +42,18 @@ firebase experiments:enable webframeworks
 ```
 
 Después del despliegue, la CLI de Firebase te proporcionará la URL de tu aplicación en vivo.
+
+## Crear una APK (Android App)
+
+Esta aplicación es una **Aplicación Web Progresiva (PWA)**, lo que significa que puedes "instalarla" en tu teléfono para que se comporte como una aplicación nativa, ¡sin necesidad de pasar por la Play Store! Esto te dará un icono en tu pantalla de inicio y abrirá la app a pantalla completa.
+
+Para instalarla en un dispositivo Android:
+
+1.  Abre la URL de tu aplicación desplegada en el navegador **Chrome**.
+2.  Toca el menú de tres puntos (⋮) en la esquina superior derecha.
+3.  Selecciona la opción **"Instalar aplicación"** o **"Añadir a la pantalla de inicio"**.
+4.  Sigue las instrucciones en pantalla.
+
+¡Y listo! Ahora tendrás un icono de "Rotación Deportiva" en tu teléfono para un acceso rápido.
+
+**Nota:** Esto no crea un archivo `.apk` que puedas subir a la Google Play Store. Si ese es tu objetivo, puedes usar herramientas como [PWABuilder](https://www.pwabuilder.com/) para empaquetar tu PWA en un APK listo para la tienda.
