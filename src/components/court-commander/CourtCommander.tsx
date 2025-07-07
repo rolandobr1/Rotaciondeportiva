@@ -32,6 +32,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, onMoveUp, onMoveDown, isFirst, isLast, isTeamAFull, isTeamBFull }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, onMoveUp?: (id: string) => void, onMoveDown?: (id: string) => void, isFirst?: boolean, isLast?: boolean, isTeamAFull?: boolean, isTeamBFull?: boolean }) => (
@@ -39,7 +42,7 @@ const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, 
     "relative flex items-center justify-between p-3 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md",
     isChampion ? "bg-amber-500" : "bg-slate-700"
   )}>
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 overflow-hidden">
         {onMoveUp && onMoveDown && (
             <div className="flex flex-col">
                 <Button size="icon" variant="ghost" className="h-5 w-5 p-0 text-slate-400 hover:text-white disabled:opacity-30" onClick={() => onMoveUp(player.id)} disabled={isFirst}>
@@ -50,17 +53,17 @@ const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, 
                 </Button>
             </div>
         )}
-        <div>
-            <p className={cn("font-bold", isChampion ? "text-black" : "text-sky-400")}>
+        <div className="overflow-hidden">
+            <p className={cn("font-bold truncate", isChampion ? "text-black" : "text-sky-400")}>
                 {turn && <span className="mr-2 text-slate-400 font-normal">{turn}.</span>}
                 {player.name}
             </p>
-            <p className={cn("text-xs", isChampion ? "text-slate-800" : "text-slate-400")}>
+            <p className={cn("text-xs truncate", isChampion ? "text-slate-800" : "text-slate-400")}>
                 V/D: {player.wins}/{player.losses} | Tasa de Victorias: {(player.winRate * 100).toFixed(0)}% | Racha: <span className={cn("font-bold", player.consecutiveWins > 0 ? (isChampion ? 'text-white' : 'text-amber-400') : '')}>{player.consecutiveWins}</span>
             </p>
         </div>
     </div>
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-shrink-0">
       {showAssign && onAssign && (
         <>
           <Button size="sm" onClick={() => onAssign(player.id, 'A')} className="h-7 w-7 p-0 bg-sky-700 hover:bg-sky-600 text-white border-none disabled:bg-slate-600 disabled:opacity-50" disabled={isTeamAFull}>A</Button>
@@ -184,6 +187,16 @@ export function RotacionDeportiva() {
     return [...players].sort((a, b) => b.wins - a.wins);
   }, [players]);
 
+  const activePlayers = useMemo(() => {
+    const playerIds = new Set<string>();
+    teamA.players.forEach(p => playerIds.add(p.id));
+    teamB.players.forEach(p => playerIds.add(p.id));
+    if (championsTeam) {
+        championsTeam.players.forEach(p => playerIds.add(p.id));
+    }
+    return Array.from(playerIds).map(id => players.find(p => p.id === id)).filter(Boolean) as Player[];
+  }, [players, teamA, teamB, championsTeam]);
+
     useEffect(() => {
         setChampionRule(waitingPlayers.length >= 10);
     }, [waitingPlayers.length]);
@@ -262,18 +275,17 @@ export function RotacionDeportiva() {
     setChampionsTeam(null);
     setNewPlayerName('');
     
-    // Clear specific localStorage items
     localStorage.removeItem(STORAGE_KEYS.PLAYERS);
     localStorage.removeItem(STORAGE_KEYS.WAITING_LIST);
     localStorage.removeItem(STORAGE_KEYS.TEAM_A);
     localStorage.removeItem(STORAGE_KEYS.TEAM_B);
     localStorage.removeItem(STORAGE_KEYS.CHAMPIONS);
     
-    setIsSummaryOpen(false); // Close the summary dialog
+    setIsSummaryOpen(false); 
     
     toast({
         title: "Día Finalizado",
-        description: "Todos los datos han sido reiniciados. ¡Hasta la próxima!",
+        description: "Todos los datos han sido reiniciados. ¡Hasta la pr\xf3xima!",
     });
   };
 
@@ -390,7 +402,6 @@ export function RotacionDeportiva() {
     const playerToRemove = players.find(p => p.id === playerId);
     if (!playerToRemove) return;
 
-    // Determine which team the player is on
     const teamId = teamA.players.find(p => p.id === playerId) ? 'A' : teamB.players.find(p => p.id === playerId) ? 'B' : null;
     if (!teamId) return;
 
@@ -416,15 +427,11 @@ export function RotacionDeportiva() {
       });
     }
 
-    // Update the waiting list
     setWaitingListIds(currentIds => {
-      // Remove the promoted player (the first one) from the list
       const idsAfterPromotion = nextPlayerFromWaitingList ? currentIds.slice(1) : currentIds;
-      // Add the removed player to the end of the list
       return [...idsAfterPromotion, playerId];
     });
 
-    // Provide feedback to the user
     if (nextPlayerFromWaitingList) {
       toast({ title: "Rotación Automática", description: `${playerToRemove.name} vuelve a la cola. ${nextPlayerFromWaitingList.name} entra al juego.` });
     } else {
@@ -440,25 +447,19 @@ export function RotacionDeportiva() {
 
     const nextPlayerFromWaitingList = waitingPlayers.length > 0 ? waitingPlayers[0] : null;
 
-    // Start with current champion players, minus the one being removed
     let newChampionPlayers = championsTeam.players.filter(p => p.id !== playerId);
-    // Start with current waiting list
     let newWaitingListIds = waitingListIds;
 
     if (nextPlayerFromWaitingList) {
-        // A replacement is available
-        newChampionPlayers.push(nextPlayerFromWaitingList); // Add replacement to champions
-        newWaitingListIds = newWaitingListIds.slice(1); // Remove replacement from waiting list
+        newChampionPlayers.push(nextPlayerFromWaitingList); 
+        newWaitingListIds = newWaitingListIds.slice(1); 
         toast({ title: "Rotación de Campeón", description: `${playerToRemove.name} vuelve a la cola. ${nextPlayerFromWaitingList.name} se une a los campeones.` });
     } else {
-        // No replacement available
         toast({ title: "Campeón en Espera", description: `${playerToRemove.name} ha vuelto a la lista de espera. El equipo campeón está incompleto.` });
     }
     
-    // Add the removed player to the end of the new waiting list
     setWaitingListIds([...newWaitingListIds, playerId]);
 
-    // Update or dissolve the champion team
     if (newChampionPlayers.length === 0) {
         setChampionsTeam(null);
     } else {
@@ -502,34 +503,28 @@ export function RotacionDeportiva() {
         return;
     }
 
-    // --- Flujo de Partido Interino ---
     if (championsTeam) {
         toast({ title: "Partido Interino Finalizado", description: `El ${winningTeamData.name} se enfrentará al campeón.` });
 
         const interimLosersIds = losingTeamData.players.map(p => p.id);
         const newWaitingListIds = [...waitingListIds, ...interimLosersIds];
         
-        // Update all players in a single pass
         const updatedPlayers = players.map(p => {
-            // Losers of interim match
             if (losingTeamData.players.some(lp => lp.id === p.id)) {
                 const newLosses = p.losses + 1;
                 return { ...p, losses: newLosses, consecutiveWins: 0, winRate: p.wins / (p.wins + newLosses) };
             }
-            // Winners of interim match
             if (winningTeamData.players.some(wp => wp.id === p.id)) {
                 const newWins = p.wins + 1;
                 const existingConsecutiveWins = p.consecutiveWins || 0;
                 return { ...p, wins: newWins, consecutiveWins: existingConsecutiveWins + 1, winRate: newWins / (newWins + p.losses) };
             }
-            // Champions return to play, streak is reset
             if (championsTeam.players.some(cp => cp.id === p.id)) {
                 return { ...p, consecutiveWins: 0 };
             }
             return p;
         });
 
-        // Get the updated player objects for the new teams from the single source of truth
         const newChampionsPlayers = updatedPlayers.filter(p => championsTeam.players.some(cp => cp.id === p.id));
         const newInterimWinnersPlayers = updatedPlayers.filter(p => winningTeamData.players.some(wp => wp.id === p.id));
 
@@ -544,15 +539,13 @@ export function RotacionDeportiva() {
         };
         
         setPlayers(updatedPlayers);
-        setTeamA(newChampionsTeam); // The returning champions will be Team A
-        setTeamB(newInterimWinnersTeam); // The interim winners will be Team B
+        setTeamA(newChampionsTeam);
+        setTeamB(newInterimWinnersTeam);
         setWaitingListIds(newWaitingListIds);
         setChampionsTeam(null);
         return;
     }
 
-    // --- Flujo Normal / Básico ---
-    const winnerNewConsecutiveWins = (winningTeamData.players[0]?.consecutiveWins || 0) + 1;
     let masterPlayerList = players.map(p => {
         if (winningTeamData.players.some(wp => wp.id === p.id)) {
             const newWins = p.wins + 1;
@@ -571,7 +564,6 @@ export function RotacionDeportiva() {
     const winningTeamCurrentPlayers = masterPlayerList.filter(p => winningTeamData.players.some(wp => wp.id === p.id));
     const finalConsecutiveWins = winningTeamCurrentPlayers[0].consecutiveWins;
 
-    // --- Flujo Avanzado: Se corona un nuevo campeón ---
     if (championRule && finalConsecutiveWins >= winsToChampion) {
         const newChampionPlayers = winningTeamCurrentPlayers;
 
@@ -597,7 +589,6 @@ export function RotacionDeportiva() {
         return;
     }
 
-    // --- Flujo Básico: Ganador se queda, perdedor a la cola, entran nuevos retadores ---
     const playersForNewTeamIds = losersToWaitingList.slice(0, 5);
     if (playersForNewTeamIds.length < 5) {
         toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes retadores. El equipo ganador se queda solo." });
@@ -706,31 +697,63 @@ export function RotacionDeportiva() {
                               Finalizar el Día y Ver Resumen
                           </Button>
                       </DialogTrigger>
-                      <DialogContent ref={summaryDialogRef} className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
+                       <DialogContent ref={summaryDialogRef} className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
                           <DialogHeader>
                               <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>
                               <DialogDescription className="text-slate-400">
                                   Estadísticas de los jugadores de hoy. ¡Buen juego a todos!
                               </DialogDescription>
                           </DialogHeader>
-                          <div className="max-h-[60vh] overflow-y-auto space-y-3 pr-4">
-                              {sortedPlayersByWins.length > 0 ? sortedPlayersByWins.map((player) => (
-                                  <div key={player.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
-                                      <div>
-                                          <p className="font-bold text-sky-400">{player.name}</p>
-                                          <p className="text-sm text-slate-300">
-                                              Juegos Jugados: {player.wins + player.losses}
-                                          </p>
-                                      </div>
-                                      <div className="text-right">
-                                          <p className="font-semibold text-emerald-400">Victorias: {player.wins}</p>
-                                          <p className="text-sm text-slate-400">Derrotas: {player.losses}</p>
-                                      </div>
+                           <Tabs defaultValue="general" className="w-full">
+                              <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="general">Ranking General</TabsTrigger>
+                                <TabsTrigger value="active">Jugadores Activos ({activePlayers.length})</TabsTrigger>
+                              </TabsList>
+                              <TabsContent value="general">
+                                <ScrollArea className="h-[40vh]">
+                                  <div className="space-y-3 pr-4">
+                                      {sortedPlayersByWins.length > 0 ? sortedPlayersByWins.map((player) => (
+                                          <div key={player.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                                              <div>
+                                                  <p className="font-bold text-sky-400">{player.name}</p>
+                                                  <p className="text-sm text-slate-300">
+                                                      Juegos Jugados: {player.wins + player.losses}
+                                                  </p>
+                                              </div>
+                                              <div className="text-right">
+                                                  <p className="font-semibold text-emerald-400">Victorias: {player.wins}</p>
+                                                  <p className="text-sm text-slate-400">Derrotas: {player.losses}</p>
+                                              </div>
+                                          </div>
+                                      )) : (
+                                        <p className="text-slate-500 text-center py-8">No se han registrado jugadores hoy.</p>
+                                      )}
                                   </div>
-                              )) : (
-                                <p className="text-slate-500 text-center py-8">No se han registrado jugadores hoy.</p>
-                              )}
-                          </div>
+                                </ScrollArea>
+                              </TabsContent>
+                              <TabsContent value="active">
+                                <ScrollArea className="h-[40vh]">
+                                   <div className="space-y-3 pr-4">
+                                      {activePlayers.length > 0 ? activePlayers.map((player) => (
+                                          <div key={player.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                                              <div>
+                                                  <p className="font-bold text-sky-400">{player.name}</p>
+                                                  <p className="text-sm text-slate-300">
+                                                      Juegos Jugados: {player.wins + player.losses}
+                                                  </p>
+                                              </div>
+                                              <div className="text-right">
+                                                  <p className="font-semibold text-emerald-400">Victorias: {player.wins}</p>
+                                                  <p className="text-sm text-slate-400">Derrotas: {player.losses}</p>
+                                              </div>
+                                          </div>
+                                      )) : (
+                                        <p className="text-slate-500 text-center py-8">No hay jugadores activos.</p>
+                                      )}
+                                  </div>
+                                </ScrollArea>
+                              </TabsContent>
+                            </Tabs>
                           <DialogFooter id="summary-dialog-footer" className="sm:justify-between gap-2 mt-4 flex-col-reverse sm:flex-row">
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -768,32 +791,40 @@ export function RotacionDeportiva() {
             </Card>
 
             <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sky-400"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
-                  <CardDescription className="text-slate-400">Los jugadores se añaden a los equipos desde aquí.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
-                {waitingPlayers.length > 0 ? (
-                    waitingPlayers.map((p, index) => (
-                        <PlayerCard 
-                            key={p.id} 
-                            player={p}
-                            turn={index + 1}
-                            onRemove={handleRemovePlayer} 
-                            onAssign={handleAssignPlayer}
-                            showAssign={true}
-                            onMoveUp={handleMovePlayerUp}
-                            onMoveDown={handleMovePlayerDown}
-                            isFirst={index === 0}
-                            isLast={index === waitingPlayers.length - 1}
-                            isTeamAFull={teamA.players.length >= 5}
-                            isTeamBFull={teamB.players.length >= 5}
-                        />
-                    ))
-                ) : (
-                    <p className="text-slate-500 text-center py-4">No hay jugadores en espera.</p>
-                )}
-              </CardContent>
+                <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
+                    <AccordionItem value="item-1" className="border-b-0">
+                        <AccordionTrigger className="p-6 hover:no-underline">
+                            <div className="flex flex-col items-start w-full">
+                               <CardTitle className="flex items-center gap-2 text-sky-400"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
+                               <CardDescription className="text-slate-400 pt-2">Los jugadores se añaden a los equipos desde aquí.</CardDescription>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                           <CardContent className="px-6 pb-6 pt-0 space-y-2 max-h-[400px] overflow-y-auto">
+                                {waitingPlayers.length > 0 ? (
+                                    waitingPlayers.map((p, index) => (
+                                        <PlayerCard 
+                                            key={p.id} 
+                                            player={p}
+                                            turn={index + 1}
+                                            onRemove={handleRemovePlayer} 
+                                            onAssign={handleAssignPlayer}
+                                            showAssign={true}
+                                            onMoveUp={handleMovePlayerUp}
+                                            onMoveDown={handleMovePlayerDown}
+                                            isFirst={index === 0}
+                                            isLast={index === waitingPlayers.length - 1}
+                                            isTeamAFull={teamA.players.length >= 5}
+                                            isTeamBFull={teamB.players.length >= 5}
+                                        />
+                                    ))
+                                ) : (
+                                    <p className="text-slate-500 text-center py-4">No hay jugadores en espera.</p>
+                                )}
+                            </CardContent>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
             </Card>
 
             <Card className={cn(
@@ -880,7 +911,7 @@ export function RotacionDeportiva() {
 
                     <div className="text-center space-y-4">
                         <h3 className="text-2xl text-sky-400">Registrar Resultado del Partido</h3>
-                        <div className="flex justify-center gap-4">
+                        <div className="flex flex-wrap justify-center gap-4">
                             <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('A')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
                                 <Trophy className="mr-2 h-4 w-4"/> Ganó {teamA.name}
                             </Button>
