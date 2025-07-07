@@ -276,7 +276,7 @@ export function RotacionDeportiva() {
     
     toast({
         title: "Día Finalizado",
-        description: "Todos los datos han sido reiniciados. ¡Hasta la pr\xf3xima!",
+        description: "Todos los datos han sido reiniciados. ¡Hasta la próxima!",
     });
   };
 
@@ -486,7 +486,7 @@ export function RotacionDeportiva() {
   };
 
   const handleInterimMatchWin = (winningTeamData: Team, losingTeamData: Team) => {
-      toast({ title: "Partido Interino Finalizado", description: `El ${winningTeamData.name} se enfrentará al campe\xf3n.` });
+      toast({ title: "Partido Interino Finalizado", description: `El ${winningTeamData.name} se enfrentará al campeón.` });
 
       const updatedPlayers = updatePlayerStats(players, winningTeamData, losingTeamData, championsTeam);
       const updatedPlayerMap = new Map(updatedPlayers.map(p => [p.id, p]));
@@ -684,7 +684,7 @@ export function RotacionDeportiva() {
                         <AccordionTrigger className="p-6 hover:no-underline">
                             <div className="flex flex-col items-start w-full">
                                <CardTitle className="flex items-center gap-2 text-sky-400"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
-                               <CardDescription className="text-slate-400 pt-2">Los jugadores se añaden a los equipos desde aqu\xed.</CardDescription>
+                               <CardDescription className="text-slate-400 pt-2">Los jugadores se añaden a los equipos desde aquí.</CardDescription>
                             </div>
                         </AccordionTrigger>
                         <AccordionContent>
