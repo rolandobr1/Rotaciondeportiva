@@ -494,7 +494,7 @@ export function RotacionDeportiva() {
     }
 
     if (championsTeam) {
-        toast({ title: "Partido Interino Finalizado", description: `El ${winningTeamData.name} se enfrentará al campeón.` });
+        toast({ title: "Partido Interino Finalizado", description: `El ${winningTeamData.name} se enfrentará al campe\xf3n.` });
 
         const interimLosersIds = losingTeamData.players.map(p => p.id);
         const newWaitingListIds = [...waitingListIds, ...interimLosersIds];
@@ -620,6 +620,27 @@ export function RotacionDeportiva() {
     if (!championsTeam) return;
     setWaitingListIds(prev => [...prev, ...championsTeam.players.map(c => c.id)]);
     setChampionsTeam(null);
+  };
+
+  const handleSendAllToWaitingList = () => {
+    const activePlayerIds = [
+      ...teamA.players.map(p => p.id),
+      ...teamB.players.map(p => p.id),
+      ...(championsTeam ? championsTeam.players.map(p => p.id) : []),
+    ];
+    
+    const uniqueActivePlayerIds = [...new Set(activePlayerIds)];
+    
+    setWaitingListIds(prev => [...prev, ...uniqueActivePlayerIds.filter(id => !prev.includes(id))]);
+
+    setTeamA({ name: 'Equipo A', players: [] });
+    setTeamB({ name: 'Equipo B', players: [] });
+    setChampionsTeam(null);
+
+    toast({
+      title: "Jugadores en Espera",
+      description: "Todos los jugadores en equipos activos han sido movidos a la lista de espera.",
+    });
   };
   
   if (!isLoaded) {
@@ -832,6 +853,7 @@ export function RotacionDeportiva() {
                   <CardTitle className="flex items-center gap-2 text-sky-400">Acciones del Día</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
                       <DialogTrigger asChild>
                           <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
@@ -899,6 +921,27 @@ export function RotacionDeportiva() {
                           </DialogFooter>
                       </DialogContent>
                   </Dialog>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700">
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Enviar todos a espera
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-slate-800 border-slate-700">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-300">
+                            Esta acción moverá a todos los jugadores de los equipos y campeones a la lista de espera.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleSendAllToWaitingList} className="bg-destructive hover:bg-red-700">Sí, enviar a todos</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </CardContent>
             </Card>
           </div>
