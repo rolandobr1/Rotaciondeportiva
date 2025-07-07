@@ -10,6 +10,7 @@
   "theme_color": "#0f172a",
   "scope": "/",
   "lang": "es-ES",
+  "dir": "auto",
   "categories": [
     "sports",
     "games"
@@ -17,7 +18,10 @@
   "launch_handler": {
     "client_mode": "focus-existing"
   },
+  "iarc_rating_id": "",
   "prefer_related_applications": false,
+  "related_applications": [],
+  "scope_extensions": [],
   "icons": [
     {
       "src": "https://placehold.co/192x192.png",
