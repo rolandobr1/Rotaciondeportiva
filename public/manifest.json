@@ -10,6 +10,8 @@
   "theme_color": "#0f172a",
   "scope": "/",
   "lang": "es-ES",
+  "dir": "auto",
+  "iarc_rating_id": "e5c89f2a-e31a-4d42-89c8-7d8194d3e528",
   "categories": [
     "sports",
     "games"
