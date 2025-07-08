@@ -868,54 +868,52 @@ export function RotacionDeportiva() {
                                             </div>
                                           </ScrollArea>
                                           <DialogFooter id="summary-dialog-footer" className="sm:justify-between gap-2 mt-4 flex-col-reverse sm:flex-row">
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button variant="destructive" className="w-full sm:w-auto">
-                                                            <RefreshCw className="mr-2 h-4 w-4"/>
-                                                            Reiniciar Todo
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent className="bg-slate-800 border-slate-700">
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
-                                                            <AlertDialogDescription className="text-slate-300">
-                                                                Esta acción es irreversible. Se borrarán todos los jugadores, equipos y estadísticas guardadas.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={handleResetDay} className="bg-destructive hover:bg-red-700">Sí, reiniciar</AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                                <div className="flex flex-col-reverse sm:flex-row gap-2">
-                                                    <AlertDialog>
-                                                      <AlertDialogTrigger asChild>
-                                                        <Button variant="outline" className="w-full sm:w-auto border-slate-600 hover:bg-slate-700">
-                                                          <RefreshCw className="mr-2 h-4 w-4" />
-                                                          Enviar todos a espera
-                                                        </Button>
-                                                      </AlertDialogTrigger>
-                                                      <AlertDialogContent className="bg-slate-800 border-slate-700">
-                                                        <AlertDialogHeader>
-                                                          <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
-                                                          <AlertDialogDescription className="text-slate-300">
-                                                              Esta acción moverá a todos los jugadores de los equipos y campeones a la lista de espera.
-                                                          </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                          <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
-                                                          <AlertDialogAction onClick={handleSendAllToWaitingList} className="bg-destructive hover:bg-red-700">Sí, enviar a todos</AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                      </AlertDialogContent>
-                                                    </AlertDialog>
-                                                    <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
-                                                        Cerrar
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="destructive" className="w-full sm:w-auto">
+                                                        <RefreshCw className="mr-2 h-4 w-4"/>
+                                                        Reiniciar Todo
                                                     </Button>
-                                                </div>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent className="bg-slate-800 border-slate-700">
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
+                                                        <AlertDialogDescription className="text-slate-300">
+                                                            Esta acción es irreversible. Se borrarán todos los jugadores, equipos y estadísticas guardadas.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={handleResetDay} className="bg-destructive hover:bg-red-700">Sí, reiniciar</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                            <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
+                                                Cerrar
+                                            </Button>
                                           </DialogFooter>
                                       </DialogContent>
                                   </Dialog>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700">
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        Enviar todos a espera
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent className="bg-slate-800 border-slate-700">
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
+                                        <AlertDialogDescription className="text-slate-300">
+                                            Esta acción moverá a todos los jugadores de los equipos y campeones a la lista de espera.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleSendAllToWaitingList} className="bg-destructive hover:bg-red-700">Sí, enviar a todos</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
                                 </div>
                               </CardContent>
                             </Card>
