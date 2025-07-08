@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   icons: {
     icon: '/rotationicon.png',
   },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+  }
 };
 
 export default function RootLayout({
@@ -20,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="dark">
+    <html lang="es" className="dark" translate="no">
       <body className={`${inter.className} antialiased`}>
         {children}
         <Toaster />
