@@ -650,8 +650,8 @@ export function RotacionDeportiva() {
             </AlertDialogContent>
         </AlertDialog>
         <header className="text-center mb-8">
-            <h1 className="font-bold text-3xl sm:text-4xl md:text-5xl text-sky-400 flex items-center justify-center gap-4 whitespace-nowrap">
-                <img src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"/>
+            <h1 className="font-bold text-3xl sm:text-4xl text-sky-400 flex items-center justify-center gap-4 whitespace-nowrap">
+                <img src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" className="h-8 w-8 sm:h-10 md:h-12"/>
                 Rotación Deportiva
             </h1>
             <p className="text-slate-400 mt-2">Gestión de equipos para partidos amistosos</p>
@@ -889,6 +889,26 @@ export function RotacionDeportiva() {
                                                     </AlertDialogContent>
                                                 </AlertDialog>
                                                 <div className="flex flex-col-reverse sm:flex-row gap-2">
+                                                    <AlertDialog>
+                                                      <AlertDialogTrigger asChild>
+                                                        <Button variant="outline" className="w-full sm:w-auto border-slate-600 hover:bg-slate-700">
+                                                          <RefreshCw className="mr-2 h-4 w-4" />
+                                                          Enviar todos a espera
+                                                        </Button>
+                                                      </AlertDialogTrigger>
+                                                      <AlertDialogContent className="bg-slate-800 border-slate-700">
+                                                        <AlertDialogHeader>
+                                                          <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
+                                                          <AlertDialogDescription className="text-slate-300">
+                                                              Esta acción moverá a todos los jugadores de los equipos y campeones a la lista de espera.
+                                                          </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                          <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+                                                          <AlertDialogAction onClick={handleSendAllToWaitingList} className="bg-destructive hover:bg-red-700">Sí, enviar a todos</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                      </AlertDialogContent>
+                                                    </AlertDialog>
                                                     <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
                                                         Cerrar
                                                     </Button>
@@ -896,26 +916,6 @@ export function RotacionDeportiva() {
                                           </DialogFooter>
                                       </DialogContent>
                                   </Dialog>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700">
-                                        <RefreshCw className="mr-2 h-4 w-4" />
-                                        Enviar todos a espera
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent className="bg-slate-800 border-slate-700">
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
-                                        <AlertDialogDescription className="text-slate-300">
-                                            Esta acción moverá a todos los jugadores de los equipos y campeones a la lista de espera.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleSendAllToWaitingList} className="bg-destructive hover:bg-red-700">Sí, enviar a todos</AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
                                 </div>
                               </CardContent>
                             </Card>
