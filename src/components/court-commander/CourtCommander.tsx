@@ -145,7 +145,7 @@ export function RotacionDeportiva() {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   
   const [championRule, setChampionRule] = useState(false);
-  const [winsToChampion, setWinsToChampion] = useState(2);
+  const [winsToChampion, setWinsToChampion] = useState<number | string>(2);
   const [isConfirmDisableChampionsOpen, setIsConfirmDisableChampionsOpen] = useState(false);
 
   const { toast } = useToast();
@@ -565,6 +565,17 @@ export function RotacionDeportiva() {
   }
 
   const handleRecordWin = (winner: 'A' | 'B') => {
+    const winsNeeded = Number(winsToChampion);
+    if (isNaN(winsNeeded) || winsNeeded < 1) {
+      toast({
+        variant: "destructive",
+        title: "Número inválido",
+        description: "Las victorias para ser campeón deben ser un número mayor a 0.",
+      });
+      setWinsToChampion(1);
+      return;
+    }
+    
     const winningTeamData = winner === 'A' ? teamA : teamB;
     const losingTeamData = winner === 'A' ? teamB : teamA;
 
@@ -583,7 +594,7 @@ export function RotacionDeportiva() {
     const winningTeamCurrentPlayers = winningTeamData.players.map(p => updatedPlayerMap.get(p.id)!);
     const finalConsecutiveWins = winningTeamCurrentPlayers.length > 0 ? winningTeamCurrentPlayers[0].consecutiveWins : 0;
 
-    if (championRule && finalConsecutiveWins >= winsToChampion) {
+    if (championRule && finalConsecutiveWins >= winsNeeded) {
       handleNewChampions(winningTeamData, losingTeamData, winningTeamCurrentPlayers, updatedPlayers);
     } else {
       handleStandardRotation(winner, winningTeamCurrentPlayers, losingTeamData, updatedPlayers);
@@ -774,12 +785,20 @@ export function RotacionDeportiva() {
                                         { championRule ? 'El equipo campeón descansará.' : 'Se activa con 10 o más jugadores en espera.'}
                                     </p>
                                     <div className="flex items-center gap-2 my-4">
-                                        <Label htmlFor="wins-to-champion">Victorias para ser campe\xf3n:</Label>
+                                        <Label htmlFor="wins-to-champion">Victorias para ser campeón:</Label>
                                         <Input
                                             id="wins-to-champion"
                                             type="number"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
                                             value={winsToChampion}
-                                            onChange={(e) => setWinsToChampion(Math.max(1, Number(e.target.value)))}
+                                            onChange={(e) => setWinsToChampion(e.target.value.replace(/[^0-9]/g, ""))}
+                                            onBlur={(e) => {
+                                              const num = parseInt(e.target.value, 10);
+                                              if (isNaN(num) || num < 1) {
+                                                setWinsToChampion(1);
+                                              }
+                                            }}
                                             className="w-20 bg-slate-700 border-slate-600 text-white"
                                             min="1"
                                         />
@@ -888,32 +907,34 @@ export function RotacionDeportiva() {
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
-                                            <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
-                                                Cerrar
-                                            </Button>
+                                            <div className="flex flex-col-reverse sm:flex-row gap-2">
+                                              <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                  <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700">
+                                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                                    Enviar todos a espera
+                                                  </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent className="bg-slate-800 border-slate-700">
+                                                  <AlertDialogHeader>
+                                                    <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
+                                                    <AlertDialogDescription className="text-slate-300">
+                                                        Esta acción moverá a todos los jugadores de los equipos y campeones a la lista de espera.
+                                                    </AlertDialogDescription>
+                                                  </AlertDialogHeader>
+                                                  <AlertDialogFooter>
+                                                    <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleSendAllToWaitingList} className="bg-destructive hover:bg-red-700">Sí, enviar a todos</AlertDialogAction>
+                                                  </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                              </AlertDialog>
+                                              <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
+                                                  Cerrar
+                                              </Button>
+                                            </div>
                                           </DialogFooter>
                                       </DialogContent>
                                   </Dialog>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700">
-                                        <RefreshCw className="mr-2 h-4 w-4" />
-                                        Enviar todos a espera
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent className="bg-slate-800 border-slate-700">
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
-                                        <AlertDialogDescription className="text-slate-300">
-                                            Esta acción moverá a todos los jugadores de los equipos y campeones a la lista de espera.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleSendAllToWaitingList} className="bg-destructive hover:bg-red-700">Sí, enviar a todos</AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
                                 </div>
                               </CardContent>
                             </Card>
