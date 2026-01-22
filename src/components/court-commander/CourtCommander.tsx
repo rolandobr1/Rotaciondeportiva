@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Users, Crown, Plus, Trash2, Swords, Trophy, GripVertical, Newspaper, RefreshCw, X as CloseIcon } from 'lucide-react';
+import { Users, Crown, Plus, Trash2, Swords, Trophy, GripVertical, Newspaper, RefreshCw, Pencil, X as CloseIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -36,7 +36,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, isTeamAFull, isTeamBFull, draggable, onDragStart, onDragEnter, onDragLeave, onDragOver, onDrop, onDragEnd, isDragging, isDraggingOver }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, isTeamAFull?: boolean, isTeamBFull?: boolean, draggable?: boolean, onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void, onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void, onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void, onDrop?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void, isDragging?: boolean, isDraggingOver?: boolean }) => (
+const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, isTeamAFull, isTeamBFull, draggable, onDragStart, onDragEnter, onDragLeave, onDragOver, onDrop, onDragEnd, isDragging, isDraggingOver, onEdit }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, isTeamAFull?: boolean, isTeamBFull?: boolean, draggable?: boolean, onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void, onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void, onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void, onDrop?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void, isDragging?: boolean, isDraggingOver?: boolean, onEdit?: (id: string) => void }) => (
   <div 
     draggable={draggable}
     onDragStart={onDragStart}
@@ -55,10 +55,17 @@ const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, 
     <div className="flex items-center gap-3 overflow-hidden">
         {draggable && <GripVertical className="h-5 w-5 text-slate-400 shrink-0" />}
         <div className="overflow-hidden">
-            <p className={cn("font-bold truncate", isChampion ? "text-black" : "text-sky-400")}>
-                {turn && <span className="mr-2 text-slate-400 font-normal">{turn}.</span>}
-                {player.name}
-            </p>
+            <div className="flex items-center gap-2">
+                <p className={cn("font-bold truncate", isChampion ? "text-black" : "text-sky-400")}>
+                    {turn && <span className="mr-2 text-slate-400 font-normal">{turn}.</span>}
+                    {player.name}
+                </p>
+                {onEdit && (
+                    <Button size="icon" variant="ghost" className={cn("h-6 w-6 shrink-0 p-0", isChampion ? "text-black hover:text-slate-700" : "text-slate-400 hover:text-white")} onClick={() => onEdit(player.id)}>
+                        <Pencil className="h-3 w-3" />
+                    </Button>
+                )}
+            </div>
             <p className={cn("text-xs truncate", isChampion ? "text-slate-800" : "text-slate-400")}>
                 V/D: {player.wins}/{player.losses} | Tasa de Victorias: {(player.winRate * 100).toFixed(0)}% | Racha: <span className={cn("font-bold", player.consecutiveWins > 0 ? (isChampion ? 'text-white' : 'text-amber-400') : '')}>{player.consecutiveWins}</span>
             </p>
@@ -80,7 +87,53 @@ const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, 
   </div>
 );
 
-const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (playerId: string) => void }) => {
+const EditableTeamTitle = ({ name, onSave }: { name: string, onSave: (newName: string) => void }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [value, setValue] = useState(name);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isEditing) {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }
+    }, [isEditing]);
+    
+    const handleSave = () => {
+        if (value.trim()) {
+            onSave(value.trim());
+        } else {
+            setValue(name); // Reset if empty
+        }
+        setIsEditing(false);
+    };
+
+    if (isEditing) {
+        return (
+            <div className="flex items-center gap-2 text-2xl text-sky-400">
+                <Swords />
+                <Input
+                    ref={inputRef}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onBlur={handleSave}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                    className="text-2xl font-bold h-auto p-0 border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sky-400"
+                />
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex items-center gap-2 text-2xl text-sky-400 cursor-pointer" onClick={() => setIsEditing(true)}>
+            <Swords /> {name}
+            <Pencil className="h-4 w-4 ml-2 opacity-50 hover:opacity-100 transition-opacity" />
+        </div>
+    );
+};
+
+
+const TeamColumn = ({ team, onRemovePlayer, onUpdateName, onEditPlayer }: { team: Team, onRemovePlayer: (playerId: string) => void, onUpdateName: (newName: string) => void, onEditPlayer: (playerId: string) => void }) => {
     const avgWinRate = useMemo(() => {
         if (team.players.length === 0) return 0;
         const totalWinRate = team.players.reduce((sum, p) => sum + p.winRate, 0);
@@ -90,14 +143,14 @@ const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (pla
     return (
         <Card className="flex-1 min-w-[280px] bg-slate-800/80 border-slate-700">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl text-sky-400">
-                    <Swords /> {team.name}
+                <CardTitle>
+                    <EditableTeamTitle name={team.name} onSave={onUpdateName} />
                 </CardTitle>
                 <CardDescription className="text-slate-400">Tasa de Vic. Prom.: {(avgWinRate * 100).toFixed(0)}%</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
                 {team.players.length > 0 ? (
-                    team.players.map(p => <PlayerCard key={p.id} player={p} onRemove={() => onRemovePlayer(p.id)} />)
+                    team.players.map(p => <PlayerCard key={p.id} player={p} onRemove={() => onRemovePlayer(p.id)} onEdit={onEditPlayer} />)
                 ) : (
                     <div className="text-center text-slate-500 py-8">Añade jugadores a este equipo</div>
                 )}
@@ -109,12 +162,14 @@ const TeamColumn = ({ team, onRemovePlayer }: { team: Team, onRemovePlayer: (pla
 // Helper function to update player stats after a match
 const updatePlayerStats = (players: Player[], winningTeam: Team, losingTeam: Team, championsTeam?: Team | null): Player[] => {
   return players.map(p => {
+    const wasChampion = championsTeam?.players.some(cp => cp.id === p.id);
+    
     if (winningTeam.players.some(wp => wp.id === p.id)) {
       const newWins = p.wins + 1;
       return {
         ...p,
         wins: newWins,
-        consecutiveWins: (p.consecutiveWins || 0) + 1,
+        consecutiveWins: wasChampion ? (p.consecutiveWins || 0) + 1 : (p.consecutiveWins || 0) + 1,
         winRate: newWins / (newWins + p.losses),
       };
     }
@@ -127,8 +182,8 @@ const updatePlayerStats = (players: Player[], winningTeam: Team, losingTeam: Tea
         winRate: p.wins / (p.wins + newLosses),
       };
     }
-    // Reset consecutive wins for resting champions if they didn't play
-    if (championsTeam && championsTeam.players.some(cp => cp.id === p.id)) {
+    // Reset consecutive wins for resting champions if they didn't play (losing challenger)
+    if (wasChampion) {
         return { ...p, consecutiveWins: 0 };
     }
     return p;
@@ -153,15 +208,23 @@ export function RotacionDeportiva() {
   const [draggedPlayerId, setDraggedPlayerId] = useState<string | null>(null);
   const [dragOverPlayerId, setDragOverPlayerId] = useState<string | null>(null);
 
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [editedPlayerName, setEditedPlayerName] = useState('');
+
+  const [savedWaitingList, setSavedWaitingList] = useState<string[] | null>(null);
+  const [savedPlayers, setSavedPlayers] = useState<Player[] | null>(null);
+
   const { toast } = useToast();
 
   const STORAGE_KEYS = useMemo(() => ({
-    PLAYERS: 'rotacionDeportiva.players',
-    WAITING_LIST: 'rotacionDeportiva.waitingListIds',
-    TEAM_A: 'rotacionDeportiva.teamA',
-    TEAM_B: 'rotacionDeportiva.teamB',
-    CHAMPIONS: 'rotacionDeportiva.championsTeam',
-    WINS_TO_CHAMPION: 'rotacionDeportiva.winsToChampion',
+    PLAYERS: 'rotacionDeportiva.players_v2',
+    WAITING_LIST: 'rotacionDeportiva.waitingListIds_v2',
+    TEAM_A: 'rotacionDeportiva.teamA_v2',
+    TEAM_B: 'rotacionDeportiva.teamB_v2',
+    CHAMPIONS: 'rotacionDeportiva.championsTeam_v2',
+    WINS_TO_CHAMPION: 'rotacionDeportiva.winsToChampion_v2',
+    SAVED_WAITING_LIST: 'rotacionDeportiva.savedWaitingList_v2',
+    SAVED_PLAYERS: 'rotacionDeportiva.savedPlayers_v2',
   }), []);
   
   useEffect(() => {
@@ -184,6 +247,12 @@ export function RotacionDeportiva() {
       const storedWins = localStorage.getItem(STORAGE_KEYS.WINS_TO_CHAMPION);
       if (storedWins) setWinsToChampion(JSON.parse(storedWins));
 
+      const storedSavedList = localStorage.getItem(STORAGE_KEYS.SAVED_WAITING_LIST);
+      if (storedSavedList) setSavedWaitingList(JSON.parse(storedSavedList));
+
+      const storedSavedPlayers = localStorage.getItem(STORAGE_KEYS.SAVED_PLAYERS);
+      if (storedSavedPlayers) setSavedPlayers(JSON.parse(storedSavedPlayers));
+
     } catch (error) {
       console.error("Error al cargar datos desde localStorage", error);
       toast({
@@ -204,17 +273,19 @@ export function RotacionDeportiva() {
       localStorage.setItem(STORAGE_KEYS.TEAM_B, JSON.stringify(teamB));
       localStorage.setItem(STORAGE_KEYS.CHAMPIONS, JSON.stringify(championsTeam));
       localStorage.setItem(STORAGE_KEYS.WINS_TO_CHAMPION, JSON.stringify(winsToChampion));
+      localStorage.setItem(STORAGE_KEYS.SAVED_WAITING_LIST, JSON.stringify(savedWaitingList));
+      localStorage.setItem(STORAGE_KEYS.SAVED_PLAYERS, JSON.stringify(savedPlayers));
     } catch (error) {
       console.error("Error al guardar datos en localStorage", error);
     }
-  }, [players, waitingListIds, teamA, teamB, championsTeam, winsToChampion, isLoaded, STORAGE_KEYS]);
+  }, [players, waitingListIds, teamA, teamB, championsTeam, winsToChampion, savedWaitingList, savedPlayers, isLoaded, STORAGE_KEYS]);
 
 
   const waitingPlayers = useMemo(() => {
-      const waitingPlayersMap = new Map(players.map(p => [p.id, p]));
+      const playerMap = new Map(players.map(p => [p.id, p]));
       return waitingListIds
-          .map(id => waitingPlayersMap.get(id))
-          .filter(Boolean) as Player[];
+          .map(id => playerMap.get(id))
+          .filter((p): p is Player => !!p);
   }, [players, waitingListIds]);
 
   const sortedPlayersByWins = useMemo(() => {
@@ -251,7 +322,13 @@ export function RotacionDeportiva() {
   const handleConfirmDisableChampionRule = () => {
     setChampionRule(false);
     if (championsTeam) {
-      setWaitingListIds(prev => [...prev, ...championsTeam.players.map(p => p.id)]);
+      const playerMap = new Map(players.map(p => [p.id, p]));
+      const sortedChampions = championsTeam.players
+        .map(p => playerMap.get(p.id)!)
+        .filter(Boolean)
+        .sort((a, b) => a.createdAt - b.createdAt);
+
+      setWaitingListIds(prev => [...prev, ...sortedChampions.map(p => p.id)]);
       setChampionsTeam(null);
       toast({
         title: "Regla Desactivada",
@@ -270,12 +347,10 @@ export function RotacionDeportiva() {
     setTeamB({ name: 'Equipo B', players: [] });
     setChampionsTeam(null);
     setNewPlayerName('');
+    setSavedPlayers(null);
+    setSavedWaitingList(null);
     
-    localStorage.removeItem(STORAGE_KEYS.PLAYERS);
-    localStorage.removeItem(STORAGE_KEYS.WAITING_LIST);
-    localStorage.removeItem(STORAGE_KEYS.TEAM_A);
-    localStorage.removeItem(STORAGE_KEYS.TEAM_B);
-    localStorage.removeItem(STORAGE_KEYS.CHAMPIONS);
+    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
     
     setIsSummaryOpen(false); 
     
@@ -314,6 +389,7 @@ export function RotacionDeportiva() {
       losses: 0,
       winRate: 0,
       consecutiveWins: 0,
+      createdAt: Date.now()
     };
     setPlayers(prev => [...prev, newPlayer]);
     setWaitingListIds(prev => [...prev, newPlayer.id]);
@@ -322,75 +398,62 @@ export function RotacionDeportiva() {
   };
 
   const handleRemovePlayer = (id: string) => {
-    setPlayers(p => p.filter(player => player.id !== id));
-    setWaitingListIds(ids => ids.filter(playerId => playerId !== id));
-    setTeamA(t => {
-      const newPlayers = t.players.filter(p => p.id !== id);
-      const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo A';
-      return { ...t, players: newPlayers, name: newName };
-    });
-    setTeamB(t => {
-      const newPlayers = t.players.filter(p => p.id !== id);
-      const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo B';
-      return { ...t, players: newPlayers, name: newName };
-    });
-    setChampionsTeam(ct => {
-        if (!ct) return null;
-        const newPlayers = ct.players.filter(p => p.id !== id);
-        if (newPlayers.length === 0) return null;
-        const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Campeones';
-        return { ...ct, players: newPlayers, name: newName };
-    });
+    const playerToRemove = players.find(p => p.id === id);
+    if (!playerToRemove) return;
+    
+    const confirmAndRemove = () => {
+        setPlayers(p => p.filter(player => player.id !== id));
+        setWaitingListIds(ids => ids.filter(playerId => playerId !== id));
+        
+        const removePlayerFromTeam = (team: Team) => {
+            const newPlayers = team.players.filter(p => p.id !== id);
+            return { ...team, players: newPlayers };
+        };
+
+        setTeamA(removePlayerFromTeam);
+        setTeamB(removePlayerFromTeam);
+        setChampionsTeam(ct => {
+            if (!ct) return null;
+            const newPlayers = ct.players.filter(p => p.id !== id);
+            return newPlayers.length > 0 ? { ...ct, players: newPlayers } : null;
+        });
+
+        toast({ title: 'Jugador Eliminado', description: `${playerToRemove.name} ha sido eliminado de la aplicación.` });
+    };
+
+    confirmAndRemove();
   };
   
   const handleAssignPlayer = (playerId: string, team: 'A' | 'B') => {
     const player = players.find(p => p.id === playerId);
     if (!player) return;
+    
+    const targetTeam = team === 'A' ? teamA : teamB;
+    const setTargetTeam = team === 'A' ? setTeamA : setTeamB;
+    const otherTeam = team === 'A' ? teamB : teamA;
+    const setOtherTeam = team === 'A' ? setTeamB : setTeamA;
+    const otherTeamAutoFill = team === 'A' ? 'B' : 'A';
 
-    if (team === 'A') {
-        if (teamA.players.length >= 5) {
-            toast({ variant: 'destructive', title: "Equipo A ya está lleno." });
-            return;
-        }
+    if (targetTeam.players.length >= 5) {
+        toast({ variant: 'destructive', title: `Equipo ${team} ya está lleno.` });
+        return;
+    }
 
-        const newTeamAPlayers = [...teamA.players, player];
-        const updatedWaitingIds = waitingListIds.filter(id => id !== playerId);
+    const newTeamPlayers = [...targetTeam.players, player];
+    setTargetTeam({ players: newTeamPlayers, name: team === 'A' ? 'Equipo A' : 'Equipo B' });
+    let updatedWaitingIds = waitingListIds.filter(id => id !== playerId);
 
-        setTeamA({ players: newTeamAPlayers, name: `Equipo ${newTeamAPlayers[0].name}` });
-
-        if (newTeamAPlayers.length === 5 && teamB.players.length === 0 && updatedWaitingIds.length >= 5) {
-            const playersForTeamB = updatedWaitingIds.slice(0, 5).map(id => players.find(p => p.id === id)!);
-            setTeamB({ players: playersForTeamB, name: `Equipo ${playersForTeamB[0].name}` });
-            setWaitingListIds(updatedWaitingIds.slice(5));
-            toast({
-                title: "Equipo B auto-completado",
-                description: "Los 5 siguientes jugadores han formado el equipo.",
-            });
-        } else {
-            setWaitingListIds(updatedWaitingIds);
-        }
-    } else { // team === 'B'
-        if (teamB.players.length >= 5) {
-            toast({ variant: 'destructive', title: "Equipo B ya está lleno." });
-            return;
-        }
-
-        const newTeamBPlayers = [...teamB.players, player];
-        const updatedWaitingIds = waitingListIds.filter(id => id !== playerId);
-
-        setTeamB({ players: newTeamBPlayers, name: `Equipo ${newTeamBPlayers[0].name}` });
-
-        if (newTeamBPlayers.length === 5 && teamA.players.length === 0 && updatedWaitingIds.length >= 5) {
-            const playersForTeamA = updatedWaitingIds.slice(0, 5).map(id => players.find(p => p.id === id)!);
-            setTeamA({ players: playersForTeamA, name: `Equipo ${playersForTeamA[0].name}` });
-            setWaitingListIds(updatedWaitingIds.slice(5));
-            toast({
-                title: "Equipo A auto-completado",
-                description: "Los 5 siguientes jugadores han formado el equipo.",
-            });
-        } else {
-            setWaitingListIds(updatedWaitingIds);
-        }
+    if (newTeamPlayers.length === 5 && otherTeam.players.length === 0 && updatedWaitingIds.length >= 5) {
+        const playerMap = new Map(players.map(p => [p.id, p]));
+        const playersForOtherTeam = updatedWaitingIds.slice(0, 5).map(id => playerMap.get(id)!).filter(Boolean);
+        setOtherTeam({ players: playersForOtherTeam, name: otherTeamAutoFill === 'A' ? 'Equipo A' : 'Equipo B' });
+        setWaitingListIds(updatedWaitingIds.slice(5));
+        toast({
+            title: `Equipo ${otherTeamAutoFill} auto-completado`,
+            description: "Los 5 siguientes jugadores han formado el equipo.",
+        });
+    } else {
+        setWaitingListIds(updatedWaitingIds);
     }
   };
 
@@ -398,41 +461,26 @@ export function RotacionDeportiva() {
     const playerToRemove = players.find(p => p.id === playerId);
     if (!playerToRemove) return;
 
-    const teamId = teamA.players.find(p => p.id === playerId) ? 'A' : teamB.players.find(p => p.id === playerId) ? 'B' : null;
-    if (!teamId) return;
+    let wasInTeamA = teamA.players.some(p => p.id === playerId);
+    let wasInTeamB = teamB.players.some(p => p.id === playerId);
 
-    const nextPlayerFromWaitingList = waitingPlayers.length > 0 ? waitingPlayers[0] : null;
+    if (!wasInTeamA && !wasInTeamB) return;
 
-    if (teamId === 'A') {
-      setTeamA(t => {
-        let newPlayers = t.players.filter(p => p.id !== playerId);
-        if (nextPlayerFromWaitingList) {
-          newPlayers.push(nextPlayerFromWaitingList);
-        }
-        const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo A';
-        return { ...t, players: newPlayers, name: newName };
-      });
-    } else { // teamId === 'B'
-      setTeamB(t => {
-        let newPlayers = t.players.filter(p => p.id !== playerId);
-        if (nextPlayerFromWaitingList) {
-          newPlayers.push(nextPlayerFromWaitingList);
-        }
-        const newName = newPlayers.length > 0 ? `Equipo ${newPlayers[0].name}` : 'Equipo B';
-        return { ...t, players: newPlayers, name: newName };
-      });
+    if (wasInTeamA) {
+      setTeamA(t => ({...t, players: t.players.filter(p => p.id !== playerId)}));
+    }
+    if (wasInTeamB) {
+      setTeamB(t => ({...t, players: t.players.filter(p => p.id !== playerId)}));
     }
 
     setWaitingListIds(currentIds => {
-      const idsAfterPromotion = nextPlayerFromWaitingList ? currentIds.slice(1) : currentIds;
-      return [...idsAfterPromotion, playerId];
+      const newIds = [...currentIds, playerId];
+      const playerMap = new Map(players.map(p => [p.id, p]));
+      newIds.sort((a,b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt);
+      return newIds;
     });
 
-    if (nextPlayerFromWaitingList) {
-      toast({ title: "Rotación Automática", description: `${playerToRemove.name} vuelve a la cola. ${nextPlayerFromWaitingList.name} entra al juego.` });
-    } else {
-      toast({ title: "Jugador en Espera", description: `${playerToRemove.name} ha vuelto a la lista de espera.` });
-    }
+    toast({ title: "Jugador en Espera", description: `${playerToRemove.name} ha vuelto a la lista de espera.` });
   };
 
   const handleRemoveFromChampionTeam = (playerId: string) => {
@@ -441,28 +489,24 @@ export function RotacionDeportiva() {
     const playerToRemove = championsTeam.players.find(p => p.id === playerId);
     if (!playerToRemove) return;
 
-    const nextPlayerFromWaitingList = waitingPlayers.length > 0 ? waitingPlayers[0] : null;
-
     let newChampionPlayers = championsTeam.players.filter(p => p.id !== playerId);
-    let newWaitingListIds = waitingListIds;
-
-    if (nextPlayerFromWaitingList) {
-        newChampionPlayers.push(nextPlayerFromWaitingList); 
-        newWaitingListIds = newWaitingListIds.slice(1); 
-        toast({ title: "Rotación de Campeón", description: `${playerToRemove.name} vuelve a la cola. ${nextPlayerFromWaitingList.name} se une a los campeones.` });
-    } else {
-        toast({ title: "Campeón en Espera", description: `${playerToRemove.name} ha vuelto a la lista de espera. El equipo campeón está incompleto.` });
-    }
     
-    setWaitingListIds([...newWaitingListIds, playerId]);
+    setWaitingListIds(currentIds => {
+        const newIds = [...currentIds, playerId];
+        const playerMap = new Map(players.map(p => [p.id, p]));
+        newIds.sort((a,b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt);
+        return newIds;
+    });
 
     if (newChampionPlayers.length === 0) {
         setChampionsTeam(null);
+        toast({ title: "Equipo Campeón Disuelto", description: "No quedan jugadores en el equipo campeón."});
     } else {
         setChampionsTeam({
             ...championsTeam,
             players: newChampionPlayers,
         });
+        toast({ title: "Campeón en Espera", description: `${playerToRemove.name} ha vuelto a la lista de espera.` });
     }
   };
 
@@ -516,153 +560,212 @@ export function RotacionDeportiva() {
       setDraggedPlayerId(null);
       setDragOverPlayerId(null);
   };
-
-  const handleInterimMatchWin = (winningTeamData: Team, losingTeamData: Team) => {
-      toast({ title: "Partido Interino Finalizado", description: `El ${winningTeamData.name} se enfrentará al campeón.` });
-
-      const updatedPlayers = updatePlayerStats(players, winningTeamData, losingTeamData, championsTeam);
-      const updatedPlayerMap = new Map(updatedPlayers.map(p => [p.id, p]));
-
-      const newChampionsPlayers = championsTeam!.players.map(p => updatedPlayerMap.get(p.id)!);
-      const newChallengers = winningTeamData.players.map(p => updatedPlayerMap.get(p.id)!);
-      
-      setPlayers(updatedPlayers);
-      setTeamA({ name: `Equipo ${newChampionsPlayers[0].name}`, players: newChampionsPlayers });
-      setTeamB({ name: `Equipo ${newChallengers[0].name}`, players: newChallengers });
-      setWaitingListIds(prev => [...prev, ...losingTeamData.players.map(p => p.id)]);
-      setChampionsTeam(null);
-  }
-
-  const handleNewChampions = (winningTeamData: Team, losingTeamData: Team, winningTeamPlayers: Player[], updatedPlayers: Player[]) => {
-      toast({title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansarán.`});
-      
-      setChampionsTeam({ name: "Campeones", players: winningTeamPlayers });
-
-      const losersToWaitingList = [...waitingListIds, ...losingTeamData.players.map(p => p.id)];
-
-      if (losersToWaitingList.length < 10) {
-          toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes jugadores en espera para un partido interino. Los equipos se han vaciado." });
-          setTeamA({ name: 'Equipo A', players: [] });
-          setTeamB({ name: 'Equipo B', players: [] });
-          setWaitingListIds(losersToWaitingList);
-      } else {
-          const playersForInterim = losersToWaitingList.slice(0, 10).map(id => updatedPlayers.find(p => p.id === id)!);
-          setTeamA({ name: `Equipo ${playersForInterim[0].name}`, players: playersForInterim.slice(0, 5) });
-          setTeamB({ name: `Equipo ${playersForInterim[5].name}`, players: playersForInterim.slice(5, 10) });
-          setWaitingListIds(losersToWaitingList.slice(10));
-      }
-      setPlayers(updatedPlayers);
-  }
-
-  const handleStandardRotation = (winner: 'A'|'B', winningTeamPlayers: Player[], losingTeamData: Team, updatedPlayers: Player[]) => {
-      const losersToWaitingList = [...waitingListIds, ...losingTeamData.players.map(p => p.id)];
-      
-      const playersForNewTeamIds = losersToWaitingList.slice(0, 5);
-      
-      if (playersForNewTeamIds.length < 5) {
-          toast({ variant: 'destructive', title: "No hay suficientes jugadores", description: "No hay suficientes retadores. El equipo ganador se queda solo." });
-          const winnerTeamWithStats = { name: `Equipo ${winningTeamPlayers[0].name}`, players: winningTeamPlayers };
-          
-          if (winner === 'A') {
-              setTeamA(winnerTeamWithStats);
-              setTeamB({ name: 'Equipo B', players: [] });
-          } else {
-              setTeamB(winnerTeamWithStats);
-              setTeamA({ name: 'Equipo A', players: [] });
-          }
-          setWaitingListIds(losersToWaitingList);
-      } else {
-          const remainingWaitingList = losersToWaitingList.slice(5);
-          const newChallengerPlayers = playersForNewTeamIds.map(id => updatedPlayers.find(p => p.id === id)!);
-          const newChallengers = {
-              name: `Equipo ${newChallengerPlayers[0].name}`,
-              players: newChallengerPlayers
-          };
-
-          const winnerTeamWithStats = {
-            name: (winner === 'A' ? teamA : teamB).name,
-            players: winningTeamPlayers,
-          };
-          
-          if (winner === 'A') {
-              setTeamA(winnerTeamWithStats);
-              setTeamB(newChallengers);
-          } else {
-              setTeamA(newChallengers);
-              setTeamB(winnerTeamWithStats);
-          }
-          setWaitingListIds(remainingWaitingList);
-      }
-      setPlayers(updatedPlayers);
-  }
-
+  
   const handleRecordWin = (winner: 'A' | 'B') => {
-    const winsNeeded = Number(winsToChampion);
-    if (isNaN(winsNeeded) || winsNeeded < 1) {
-      toast({
-        variant: "destructive",
-        title: "Número inválido",
-        description: "Las victorias para ser campeón deben ser un número mayor a 0.",
-      });
-      setWinsToChampion(1);
-      return;
-    }
-    
-    const winningTeamData = winner === 'A' ? teamA : teamB;
-    const losingTeamData = winner === 'A' ? teamB : teamA;
-
-    if (winningTeamData.players.length < 5 || losingTeamData.players.length < 5) {
-        toast({variant: 'destructive', title: "Equipos incompletos", description: "Ambos equipos deben tener 5 jugadores."});
-        return;
-    }
-    
-    if (championsTeam) {
-      handleInterimMatchWin(winningTeamData, losingTeamData);
-      return;
-    }
-
-    const updatedPlayers = updatePlayerStats(players, winningTeamData, losingTeamData);
-    const updatedPlayerMap = new Map(updatedPlayers.map(p => [p.id, p]));
-    const winningTeamCurrentPlayers = winningTeamData.players.map(p => updatedPlayerMap.get(p.id)!);
-    const finalConsecutiveWins = winningTeamCurrentPlayers.length > 0 ? winningTeamCurrentPlayers[0].consecutiveWins : 0;
-
-    if (championRule && finalConsecutiveWins >= winsNeeded) {
-      handleNewChampions(winningTeamData, losingTeamData, winningTeamCurrentPlayers, updatedPlayers);
-    } else {
-      handleStandardRotation(winner, winningTeamCurrentPlayers, losingTeamData, updatedPlayers);
-    }
+      const winsNeeded = Number(winsToChampion);
+      if (isNaN(winsNeeded) || winsNeeded < 1) {
+          toast({ variant: "destructive", title: "Número inválido", description: "Las victorias para ser campeón deben ser un número mayor a 0." });
+          return;
+      }
+  
+      const winningTeamData = winner === 'A' ? teamA : teamB;
+      const losingTeamData = winner === 'A' ? teamB : teamA;
+  
+      if (winningTeamData.players.length < 5 || losingTeamData.players.length < 5) {
+          toast({ variant: 'destructive', title: "Equipos incompletos", description: "Ambos equipos deben tener 5 jugadores." });
+          return;
+      }
+  
+      const wasChampionMatch = !!championsTeam;
+      const allPlayersAfterStats = updatePlayerStats(players, winningTeamData, losingTeamData, wasChampionMatch ? championsTeam : null);
+      const playerMap = new Map(allPlayersAfterStats.map(p => [p.id, p]));
+  
+      const winningTeamWithStats = winningTeamData.players.map(p => playerMap.get(p.id)!);
+  
+      if (wasChampionMatch) {
+          // A challenger was decided. Now they face the champion.
+          const championPlayersWithStats = championsTeam!.players.map(p => playerMap.get(p.id)!);
+          
+          const isValidChampionTeam = championPlayersWithStats.every(Boolean) && championPlayersWithStats.length === 5;
+          
+          if (!isValidChampionTeam) {
+              toast({ variant: "destructive", title: "Equipo Campeón Inválido", description: "El equipo campeón se disolvió. Volviendo a la rotación normal." });
+              setChampionsTeam(null);
+              // Fall through to standard rotation logic
+          } else {
+              setTeamA({ name: championsTeam!.name, players: championPlayersWithStats });
+              setTeamB({ name: winningTeamData.name, players: winningTeamWithStats });
+              setChampionsTeam(null);
+              const loserIds = losingTeamData.players.map(p => p.id);
+              setWaitingListIds(currentIds => [...currentIds, ...loserIds].sort((a,b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt));
+              setPlayers(allPlayersAfterStats);
+              toast({ title: "¡Duelo de Campeones!", description: `${championsTeam!.name} vs. ${winningTeamData.name}` });
+              return;
+          }
+      }
+      
+      const winningTeamConsecutiveWins = winningTeamWithStats.map(p => p.consecutiveWins);
+      const teamHasReachedChampionStatus = championRule && winningTeamConsecutiveWins.every(w => w >= winsNeeded);
+  
+      if (teamHasReachedChampionStatus) {
+          // New champions crowned
+          toast({ title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansarán.` });
+          setChampionsTeam({ name: winningTeamData.name, players: winningTeamWithStats });
+          
+          const loserIds = losingTeamData.players.map(p => p.id);
+          const newWaitingList = [...waitingListIds, ...loserIds].sort((a, b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt);
+  
+          if (newWaitingList.length < 10) {
+              toast({ variant: 'destructive', title: "No hay suficientes retadores", description: "Los equipos se han vaciado. No hay suficientes jugadores para un partido interino." });
+              setTeamA({ name: 'Equipo A', players: [] });
+              setTeamB({ name: 'Equipo B', players: [] });
+              setWaitingListIds(newWaitingList);
+          } else {
+              const interimA = newWaitingList.slice(0, 5).map(id => playerMap.get(id)!);
+              const interimB = newWaitingList.slice(5, 10).map(id => playerMap.get(id)!);
+              setTeamA({ name: 'Equipo A', players: interimA });
+              setTeamB({ name: 'Equipo B', players: interimB });
+              setWaitingListIds(newWaitingList.slice(10));
+              toast({ title: "Partido Interino", description: "Se ha formado un nuevo partido para decidir el próximo retador." });
+          }
+      } else {
+          // Standard rotation
+          const loserIds = losingTeamData.players.map(p => p.id);
+          const newWaitingList = [...waitingListIds, ...loserIds].sort((a, b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt);
+          
+          if (newWaitingList.length < 5) {
+              toast({ variant: 'destructive', title: "No hay suficientes retadores", description: "El equipo ganador se queda en la cancha, pero no hay suficientes jugadores para formar un equipo retador." });
+              const winnerTeamData = { name: winningTeamData.name, players: winningTeamWithStats };
+              if (winner === 'A') {
+                  setTeamA(winnerTeamData);
+                  setTeamB({ name: 'Equipo B', players: [] });
+              } else {
+                  setTeamA({ name: 'Equipo A', players: [] });
+                  setTeamB(winnerTeamData);
+              }
+              setWaitingListIds(newWaitingList);
+          } else {
+              const newChallengers = newWaitingList.slice(0, 5).map(id => playerMap.get(id)!);
+              if (winner === 'A') {
+                  setTeamA({ name: teamA.name, players: winningTeamWithStats });
+                  setTeamB({ name: 'Equipo B', players: newChallengers });
+              } else {
+                  setTeamA({ name: 'Equipo A', players: newChallengers });
+                  setTeamB({ name: teamB.name, players: winningTeamWithStats });
+              }
+              setWaitingListIds(newWaitingList.slice(5));
+          }
+      }
+      setPlayers(allPlayersAfterStats);
   };
+  
 
   const handleReturnChampionToWaitingList = () => {
     if (!championsTeam) return;
-    setWaitingListIds(prev => [...prev, ...championsTeam.players.map(c => c.id)]);
+
+    const playerMap = new Map(players.map(p => [p.id, p]));
+    const championIds = championsTeam.players.map(p => p.id);
+    
+    setWaitingListIds(prev => [...prev, ...championIds].sort((a,b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt));
     setChampionsTeam(null);
   };
 
-  const handleSendAllToWaitingList = () => {
-    const activePlayerIds = new Set([
-      ...teamA.players.map(p => p.id),
-      ...teamB.players.map(p => p.id),
-      ...(championsTeam ? championsTeam.players.map(p => p.id) : []),
-    ]);
+  const handleSaveWaitingList = () => {
+    setSavedPlayers([...players]);
+    setSavedWaitingList([...waitingListIds]);
+    toast({
+        title: "Lista de Espera Guardada",
+        description: "Se ha guardado una instantánea del estado actual de los jugadores.",
+    });
+  };
 
-    const playersToReturn = players
-      .filter(p => activePlayerIds.has(p.id))
-      .map(p => p.id);
-      
-    const newWaitingList = [...waitingListIds, ...playersToReturn]
-      .filter((id, index, self) => self.indexOf(id) === index);
+  const handleRestoreWaitingList = () => {
+    if (!savedPlayers || !savedWaitingList) {
+        toast({
+            variant: "destructive",
+            title: "No hay nada que restaurar",
+            description: "Primero debes guardar una instantánea de la lista de espera.",
+        });
+        return;
+    }
 
-    setWaitingListIds(newWaitingList);
+    const savedPlayerMap = new Map(savedPlayers.map(p => [p.id, p]));
+
+    const allPlayerIds = [...new Set([...savedPlayers.map(p => p.id), ...players.map(p => p.id)])];
+    const restoredPlayers = allPlayerIds.map(id => savedPlayerMap.get(id) || players.find(p => p.id === id)!);
     
+    const restoredWaitingListIds = [...savedWaitingList];
+    restoredPlayers.forEach(p => {
+        if (!restoredWaitingListIds.includes(p.id)) {
+            restoredWaitingListIds.push(p.id);
+        }
+    });
+
+    const finalWaitingList = restoredWaitingListIds.sort((a, b) => {
+        const playerA = savedPlayerMap.get(a);
+        const playerB = savedPlayerMap.get(b);
+        if (playerA && playerB) return playerA.createdAt - playerB.createdAt;
+        return 0;
+    });
+
+    setPlayers(restoredPlayers);
+    setWaitingListIds(finalWaitingList);
     setTeamA({ name: 'Equipo A', players: [] });
     setTeamB({ name: 'Equipo B', players: [] });
     setChampionsTeam(null);
 
     toast({
-      title: "Jugadores en Espera",
-      description: "Todos los jugadores en equipos activos han sido movidos a la lista de espera.",
+        title: "Lista de Espera Restaurada",
+        description: "Se ha restaurado la instantánea guardada. Todos los jugadores están en espera.",
     });
+  };
+
+  const handleOpenEditPlayer = (playerId: string) => {
+    const playerToEdit = players.find(p => p.id === playerId);
+    if (playerToEdit) {
+        setEditingPlayer(playerToEdit);
+        setEditedPlayerName(playerToEdit.name);
+    }
+  };
+
+  const handleUpdatePlayerName = () => {
+      if (!editingPlayer || !editedPlayerName.trim()) return;
+
+      const newName = editedPlayerName.trim();
+
+      if (players.some(p => p.name.toLowerCase() === newName.toLowerCase() && p.id !== editingPlayer.id)) {
+          toast({
+              variant: 'destructive',
+              title: "Nombre duplicado",
+              description: `Ya existe otro jugador con el nombre "${newName}".`
+          });
+          return;
+      }
+
+      const applyUpdate = (playerList: Player[]) => 
+          playerList.map(p => p.id === editingPlayer.id ? { ...p, name: newName } : p);
+
+      setPlayers(prev => applyUpdate(prev));
+      setTeamA(prev => ({ ...prev, players: applyUpdate(prev.players) }));
+      setTeamB(prev => ({ ...prev, players: applyUpdate(prev.players) }));
+      if (championsTeam) {
+          setChampionsTeam(prev => prev ? { ...prev, players: applyUpdate(prev.players) } : null);
+      }
+      
+      toast({ title: "Jugador Actualizado", description: `El nombre se ha cambiado a ${newName}.` });
+      setEditingPlayer(null);
+      setEditedPlayerName('');
+  };
+
+  const handleUpdateTeamName = (team: 'A' | 'B', newName: string) => {
+      if (!newName.trim()) return;
+
+      if (team === 'A') {
+          setTeamA(prev => ({ ...prev, name: newName.trim() }));
+      } else {
+          setTeamB(prev => ({ ...prev, name: newName.trim() }));
+      }
+      toast({ title: "Nombre de Equipo Actualizado" });
   };
   
   if (!isLoaded) {
@@ -692,6 +795,34 @@ export function RotacionDeportiva() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={!!editingPlayer} onOpenChange={(isOpen) => !isOpen && setEditingPlayer(null)}>
+            <DialogContent className="bg-slate-800 border-slate-700">
+                <DialogHeader>
+                    <DialogTitle className="text-sky-400">Editar Nombre del Jugador</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="name" className="text-right text-slate-300">
+                            Nombre
+                        </Label>
+                        <Input
+                            id="name"
+                            value={editedPlayerName}
+                            onChange={(e) => setEditedPlayerName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleUpdatePlayerName()}
+                            className="col-span-3 bg-slate-700 border-slate-600 placeholder:text-slate-500"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setEditingPlayer(null)}>Cancelar</Button>
+                    <Button onClick={handleUpdatePlayerName} className="bg-sky-600 hover:bg-sky-700 text-white">Guardar Cambios</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+
         <header className="text-center mb-8">
             <h1 className="font-bold text-3xl sm:text-4xl text-sky-400 flex items-center justify-center gap-4 whitespace-nowrap">
                 <img src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" className="h-8 w-8 sm:h-10 md:h-12"/>
@@ -752,6 +883,7 @@ export function RotacionDeportiva() {
                                             isDraggingOver={dragOverPlayerId === p.id && draggedPlayerId !== p.id}
                                             isTeamAFull={teamA.players.length >= 5}
                                             isTeamBFull={teamB.players.length >= 5}
+                                            onEdit={handleOpenEditPlayer}
                                         />
                                     ))
                                 ) : (
@@ -776,7 +908,7 @@ export function RotacionDeportiva() {
                                         <Trophy className="h-6 w-6" /> Campeón Descansando
                                     </CardTitle>
                                     <CardDescription className="text-amber-100 pt-2">
-                                        Racha Actual: {championsTeam.players[0].consecutiveWins} victorias. Esperando retador.
+                                        Racha Actual: {championsTeam.players[0]?.consecutiveWins} victorias. Esperando retador.
                                     </CardDescription>
                                 </div>
                             ) : (
@@ -799,6 +931,7 @@ export function RotacionDeportiva() {
                                               key={p.id} 
                                               player={p} 
                                               onRemove={handleRemoveFromChampionTeam}
+                                              onEdit={handleOpenEditPlayer}
                                               isChampion 
                                           />
                                       ))}
@@ -863,10 +996,10 @@ export function RotacionDeportiva() {
                             <TabsTrigger value="team-b">{teamB.name}</TabsTrigger>
                         </TabsList>
                         <TabsContent value="team-a">
-                            <TeamColumn team={teamA} onRemovePlayer={handleRemoveFromTeam} />
+                            <TeamColumn team={teamA} onRemovePlayer={handleRemoveFromTeam} onUpdateName={(name) => handleUpdateTeamName('A', name)} onEditPlayer={handleOpenEditPlayer} />
                         </TabsContent>
                         <TabsContent value="team-b">
-                            <TeamColumn team={teamB} onRemovePlayer={handleRemoveFromTeam} />
+                            <TeamColumn team={teamB} onRemovePlayer={handleRemoveFromTeam} onUpdateName={(name) => handleUpdateTeamName('B', name)} onEditPlayer={handleOpenEditPlayer}/>
                         </TabsContent>
                     </Tabs>
 
@@ -945,26 +1078,12 @@ export function RotacionDeportiva() {
                                                 </AlertDialogContent>
                                             </AlertDialog>
                                             <div className="flex flex-col-reverse sm:flex-row gap-2">
-                                              <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                  <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700">
-                                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                                    Enviar todos a espera
-                                                  </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent className="bg-slate-800 border-slate-700">
-                                                  <AlertDialogHeader>
-                                                    <AlertDialogTitle className="text-amber-400">¿Estás seguro?</AlertDialogTitle>
-                                                    <AlertDialogDescription className="text-slate-300">
-                                                        Esta acción moverá a todos los jugadores de los equipos y campeones a la lista de espera.
-                                                    </AlertDialogDescription>
-                                                  </AlertDialogHeader>
-                                                  <AlertDialogFooter>
-                                                    <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={handleSendAllToWaitingList} className="bg-destructive hover:bg-red-700">Sí, enviar a todos</AlertDialogAction>
-                                                  </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                              </AlertDialog>
+                                              <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700" onClick={handleSaveWaitingList}>
+                                                  Guardar Lista
+                                              </Button>
+                                              <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700" onClick={handleRestoreWaitingList}>
+                                                  Restaurar Lista
+                                              </Button>
                                               <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
                                                   Cerrar
                                               </Button>
