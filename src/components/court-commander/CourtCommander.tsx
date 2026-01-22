@@ -87,53 +87,7 @@ const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, 
   </div>
 );
 
-const EditableTeamTitle = ({ name, onSave }: { name: string, onSave: (newName: string) => void }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [value, setValue] = useState(name);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (isEditing) {
-            inputRef.current?.focus();
-            inputRef.current?.select();
-        }
-    }, [isEditing]);
-    
-    const handleSave = () => {
-        if (value.trim()) {
-            onSave(value.trim());
-        } else {
-            setValue(name); // Reset if empty
-        }
-        setIsEditing(false);
-    };
-
-    if (isEditing) {
-        return (
-            <div className="flex items-center gap-2 text-2xl text-sky-400">
-                <Swords />
-                <Input
-                    ref={inputRef}
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    onBlur={handleSave}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                    className="text-2xl font-bold h-auto p-0 border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sky-400"
-                />
-            </div>
-        );
-    }
-
-    return (
-        <div className="flex items-center gap-2 text-2xl text-sky-400 cursor-pointer" onClick={() => setIsEditing(true)}>
-            <Swords /> {name}
-            <Pencil className="h-4 w-4 ml-2 opacity-50 hover:opacity-100 transition-opacity" />
-        </div>
-    );
-};
-
-
-const TeamColumn = ({ team, onRemovePlayer, onUpdateName, onEditPlayer }: { team: Team, onRemovePlayer: (playerId: string) => void, onUpdateName: (newName: string) => void, onEditPlayer: (playerId: string) => void }) => {
+const TeamColumn = ({ team, onRemovePlayer, onEditPlayer }: { team: Team, onRemovePlayer: (playerId: string) => void, onEditPlayer: (playerId: string) => void }) => {
     const avgWinRate = useMemo(() => {
         if (team.players.length === 0) return 0;
         const totalWinRate = team.players.reduce((sum, p) => sum + p.winRate, 0);
@@ -143,8 +97,8 @@ const TeamColumn = ({ team, onRemovePlayer, onUpdateName, onEditPlayer }: { team
     return (
         <Card className="flex-1 min-w-[280px] bg-slate-800/80 border-slate-700">
             <CardHeader>
-                <CardTitle>
-                    <EditableTeamTitle name={team.name} onSave={onUpdateName} />
+                <CardTitle className="flex items-center gap-2 text-2xl text-sky-400">
+                    <Swords /> {team.name}
                 </CardTitle>
                 <CardDescription className="text-slate-400">Tasa de Vic. Prom.: {(avgWinRate * 100).toFixed(0)}%</CardDescription>
             </CardHeader>
@@ -757,16 +711,6 @@ export function RotacionDeportiva() {
       setEditedPlayerName('');
   };
 
-  const handleUpdateTeamName = (team: 'A' | 'B', newName: string) => {
-      if (!newName.trim()) return;
-
-      if (team === 'A') {
-          setTeamA(prev => ({ ...prev, name: newName.trim() }));
-      } else {
-          setTeamB(prev => ({ ...prev, name: newName.trim() }));
-      }
-      toast({ title: "Nombre de Equipo Actualizado" });
-  };
   
   if (!isLoaded) {
       return (
@@ -996,10 +940,10 @@ export function RotacionDeportiva() {
                             <TabsTrigger value="team-b">{teamB.name}</TabsTrigger>
                         </TabsList>
                         <TabsContent value="team-a">
-                            <TeamColumn team={teamA} onRemovePlayer={handleRemoveFromTeam} onUpdateName={(name) => handleUpdateTeamName('A', name)} onEditPlayer={handleOpenEditPlayer} />
+                            <TeamColumn team={teamA} onRemovePlayer={handleRemoveFromTeam} onEditPlayer={handleOpenEditPlayer} />
                         </TabsContent>
                         <TabsContent value="team-b">
-                            <TeamColumn team={teamB} onRemovePlayer={handleRemoveFromTeam} onUpdateName={(name) => handleUpdateTeamName('B', name)} onEditPlayer={handleOpenEditPlayer}/>
+                            <TeamColumn team={teamB} onRemovePlayer={handleRemoveFromTeam} onEditPlayer={handleOpenEditPlayer}/>
                         </TabsContent>
                     </Tabs>
 
