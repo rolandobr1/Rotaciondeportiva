@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Users, Crown, Plus, Trash2, Swords, Trophy, GripVertical, Newspaper, RefreshCw, Pencil, X as CloseIcon } from 'lucide-react';
+import { Users, Crown, Plus, Trash2, Swords, Trophy, GripVertical, Newspaper, RefreshCw, Pencil, X as CloseIcon, MoreVertical, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -36,8 +36,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, isTeamAFull, isTeamBFull, draggable, onDragStart, onDragEnter, onDragLeave, onDragOver, onDrop, onDragEnd, isDragging, isDraggingOver, onEdit }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, isTeamAFull?: boolean, isTeamBFull?: boolean, draggable?: boolean, onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void, onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void, onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void, onDrop?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void, isDragging?: boolean, isDraggingOver?: boolean, onEdit?: (id: string) => void }) => (
+const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, isTeamAFull, isTeamBFull, draggable, onDragStart, onDragEnter, onDragLeave, onDragOver, onDrop, onDragEnd, isDragging, isDraggingOver, onEdit, onMoveInWaitingList, isFirstInList, isLastInList }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, isTeamAFull?: boolean, isTeamBFull?: boolean, draggable?: boolean, onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void, onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void, onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void, onDrop?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void, isDragging?: boolean, isDraggingOver?: boolean, onEdit?: (id: string) => void, onMoveInWaitingList?: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void, isFirstInList?: boolean, isLastInList?: boolean }) => (
   <div 
     draggable={draggable}
     onDragStart={onDragStart}
@@ -72,13 +73,42 @@ const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, 
             </p>
         </div>
     </div>
-    <div className="flex items-center gap-2 flex-shrink-0">
+    <div className="flex items-center gap-1 flex-shrink-0">
       {showAssign && onAssign && (
         <>
           <Button size="sm" onClick={() => onAssign(player.id, 'A')} className="h-7 w-7 p-0 bg-sky-700 hover:bg-sky-600 text-white border-none disabled:bg-slate-600 disabled:opacity-50" disabled={isTeamAFull}>A</Button>
           <Button size="sm" onClick={() => onAssign(player.id, 'B')} className="h-7 w-7 p-0 bg-teal-700 hover:bg-teal-600 text-white border-none disabled:bg-slate-600 disabled:opacity-50" disabled={isTeamBFull}>B</Button>
         </>
       )}
+
+      {onMoveInWaitingList && (
+        <div className="flex items-center">
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onMoveInWaitingList(player.id, 'up')} disabled={isFirstInList}>
+                <ChevronUp className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onMoveInWaitingList(player.id, 'down')} disabled={isLastInList}>
+                <ChevronDown className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <MoreVertical className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white">
+                    <DropdownMenuItem onClick={() => onMoveInWaitingList(player.id, 'top')} className="focus:bg-slate-700 focus:text-white">
+                        <ChevronsUp className="mr-2 h-4 w-4" />
+                        <span>Enviar al principio</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onMoveInWaitingList(player.id, 'bottom')} className="focus:bg-slate-700 focus:text-white">
+                        <ChevronsDown className="mr-2 h-4 w-4" />
+                        <span>Enviar al final</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+      )}
+
       {onRemove && (
         <Button size="icon" variant="ghost" className={cn("h-7 w-7", isChampion ? "text-black hover:text-red-900" : "text-slate-400 hover:text-red-500")} onClick={() => onRemove(player.id)}>
           <Trash2 className="h-4 w-4" />
@@ -99,7 +129,9 @@ const TeamColumn = ({ team, onRemovePlayer, onEditPlayer }: { team: Team, onRemo
         <Card className="flex-1 min-w-[280px] bg-slate-800/80 border-slate-700">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-2xl text-sky-400">
-                    <Swords /> {team.name}
+                    <div className="flex items-center gap-3">
+                        <Swords /> {team.name}
+                    </div>
                 </CardTitle>
                 <CardDescription className="text-slate-400">Tasa de Vic. Prom.: {(avgWinRate * 100).toFixed(0)}%</CardDescription>
             </CardHeader>
@@ -138,7 +170,7 @@ const updatePlayerStats = (players: Player[], winningTeam: Team, losingTeam: Tea
       };
     }
     // Reset consecutive wins for resting champions if they didn't play (losing challenger)
-    if (wasChampion) {
+    if (wasChampion && !winningTeam.players.some(wp => wp.id === p.id)) {
         return { ...p, consecutiveWins: 0 };
     }
     return p;
@@ -570,14 +602,14 @@ export function RotacionDeportiva() {
   
       if (wasChampionMatch) {
           // A challenger was decided. Now they face the champion.
-          const championPlayersWithStats = championsTeam!.players.map(p => playerMap.get(p.id)!);
+          const championPlayersWithStats = championsTeam!.players.map(p => playerMap.get(p.id)!).filter(Boolean);
           
-          const isValidChampionTeam = championPlayersWithStats.every(Boolean) && championPlayersWithStats.length === 5;
+          const isValidChampionTeam = championPlayersWithStats.length === 5;
           
           if (!isValidChampionTeam) {
               toast({ variant: "destructive", title: "Equipo Campeón Inválido", description: "El equipo campeón se disolvió. Volviendo a la rotación normal." });
               setChampionsTeam(null);
-              // Fall through to standard rotation logic
+              // Fall through to standard rotation logic by setting wasChampionMatch to false
           } else {
               setTeamA({ name: championsTeam!.name, players: championPlayersWithStats });
               setTeamB({ name: winningTeamData.name, players: winningTeamWithStats });
@@ -590,7 +622,6 @@ export function RotacionDeportiva() {
           }
       }
       
-      const winningTeamConsecutiveWins = winningTeamWithStats.map(p => p.consecutiveWins);
       const teamHasReachedChampionStatus = championRule && winningTeamWithStats.every(p => p.consecutiveWins >= winsNeeded);
   
       if (teamHasReachedChampionStatus) {
@@ -645,6 +676,32 @@ export function RotacionDeportiva() {
       setPlayers(allPlayersAfterStats);
   };
   
+  const handleMoveInWaitingList = (playerId: string, direction: 'up' | 'down' | 'top' | 'bottom') => {
+    setWaitingListIds(currentIds => {
+        const index = currentIds.indexOf(playerId);
+        if (index === -1) return currentIds;
+
+        if (direction === 'up') {
+            if (index === 0) return currentIds;
+            const newIds = [...currentIds];
+            [newIds[index - 1], newIds[index]] = [newIds[index], newIds[index - 1]];
+            return newIds;
+        }
+        if (direction === 'down') {
+            if (index === currentIds.length - 1) return currentIds;
+            const newIds = [...currentIds];
+            [newIds[index + 1], newIds[index]] = [newIds[index], newIds[index + 1]];
+            return newIds;
+        }
+        if (direction === 'top') {
+            return [playerId, ...currentIds.filter(id => id !== playerId)];
+        }
+        if (direction === 'bottom') {
+            return [...currentIds.filter(id => id !== playerId), playerId];
+        }
+        return currentIds;
+    });
+  };
 
   const handleReturnChampionToWaitingList = () => {
     if (!championsTeam) return;
@@ -859,6 +916,9 @@ export function RotacionDeportiva() {
                                             isTeamAFull={teamA.players.length >= 5}
                                             isTeamBFull={teamB.players.length >= 5}
                                             onEdit={handleOpenEditPlayer}
+                                            onMoveInWaitingList={handleMoveInWaitingList}
+                                            isFirstInList={index === 0}
+                                            isLastInList={index === waitingPlayers.length - 1}
                                         />
                                     ))
                                 ) : (

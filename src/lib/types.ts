@@ -5,6 +5,7 @@ export interface Player {
   losses: number;
   winRate: number;
   consecutiveWins: number;
+  createdAt: number;
 }
 
 export interface Team {
