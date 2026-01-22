@@ -708,7 +708,7 @@ export function RotacionDeportiva() {
                                             turn={index + 1}
                                             onRemove={handleRemovePlayer} 
                                             onAssign={handleAssignPlayer}
-                                            showAssign={true}
+                                            showAssign={index === 0}
                                             onMoveUp={handleMovePlayerUp}
                                             onMoveDown={handleMovePlayerDown}
                                             isFirst={index === 0}
