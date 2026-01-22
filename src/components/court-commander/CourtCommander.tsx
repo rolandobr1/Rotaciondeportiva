@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Users, Crown, Plus, Trash2, Swords, Trophy, ChevronUp, ChevronDown, Newspaper, RefreshCw, X as CloseIcon } from 'lucide-react';
+import { Users, Crown, Plus, Trash2, Swords, Trophy, GripVertical, Newspaper, RefreshCw, X as CloseIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -36,22 +36,24 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, onMoveUp, onMoveDown, isFirst, isLast, isTeamAFull, isTeamBFull }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, onMoveUp?: (id: string) => void, onMoveDown?: (id: string) => void, isFirst?: boolean, isLast?: boolean, isTeamAFull?: boolean, isTeamBFull?: boolean }) => (
-  <div className={cn(
+const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, isTeamAFull, isTeamBFull, draggable, onDragStart, onDragEnter, onDragLeave, onDragOver, onDrop, onDragEnd, isDragging, isDraggingOver }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, isTeamAFull?: boolean, isTeamBFull?: boolean, draggable?: boolean, onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void, onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void, onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void, onDrop?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void, isDragging?: boolean, isDraggingOver?: boolean }) => (
+  <div 
+    draggable={draggable}
+    onDragStart={onDragStart}
+    onDragEnter={onDragEnter}
+    onDragLeave={onDragLeave}
+    onDragOver={onDragOver}
+    onDrop={onDrop}
+    onDragEnd={onDragEnd}
+    className={cn(
     "relative flex items-center justify-between p-3 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md",
-    isChampion ? "bg-amber-500" : "bg-slate-700"
+    isChampion ? "bg-amber-500" : "bg-slate-700",
+    draggable && "cursor-move",
+    isDragging && "opacity-50",
+    isDraggingOver && "ring-2 ring-sky-400"
   )}>
     <div className="flex items-center gap-3 overflow-hidden">
-        {onMoveUp && onMoveDown && (
-            <div className="flex flex-col">
-                <Button size="icon" variant="ghost" className="h-5 w-5 p-0 text-slate-400 hover:text-white disabled:opacity-30" onClick={() => onMoveUp(player.id)} disabled={isFirst}>
-                    <ChevronUp className="h-4 w-4" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-5 w-5 p-0 text-slate-400 hover:text-white disabled:opacity-30" onClick={() => onMoveDown(player.id)} disabled={isLast}>
-                    <ChevronDown className="h-4 w-4" />
-                </Button>
-            </div>
-        )}
+        {draggable && <GripVertical className="h-5 w-5 text-slate-400 shrink-0" />}
         <div className="overflow-hidden">
             <p className={cn("font-bold truncate", isChampion ? "text-black" : "text-sky-400")}>
                 {turn && <span className="mr-2 text-slate-400 font-normal">{turn}.</span>}
@@ -147,6 +149,9 @@ export function RotacionDeportiva() {
   const [championRule, setChampionRule] = useState(false);
   const [winsToChampion, setWinsToChampion] = useState<number | string>(2);
   const [isConfirmDisableChampionsOpen, setIsConfirmDisableChampionsOpen] = useState(false);
+
+  const [draggedPlayerId, setDraggedPlayerId] = useState<string | null>(null);
+  const [dragOverPlayerId, setDragOverPlayerId] = useState<string | null>(null);
 
   const { toast } = useToast();
 
@@ -461,28 +466,55 @@ export function RotacionDeportiva() {
     }
   };
 
-  const handleMovePlayerUp = (playerId: string) => {
-    setWaitingListIds(prevIds => {
-      const index = prevIds.indexOf(playerId);
-      if (index > 0) {
-        const newIds = [...prevIds];
-        [newIds[index], newIds[index - 1]] = [newIds[index - 1], newIds[index]];
-        return newIds;
-      }
-      return prevIds;
-    });
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, playerId: string) => {
+      e.dataTransfer.effectAllowed = 'move';
+      setDraggedPlayerId(playerId);
   };
 
-  const handleMovePlayerDown = (playerId: string) => {
-    setWaitingListIds(prevIds => {
-      const index = prevIds.indexOf(playerId);
-      if (index < prevIds.length - 1 && index !== -1) {
-        const newIds = [...prevIds];
-        [newIds[index], newIds[index + 1]] = [newIds[index + 1], newIds[index]];
-        return newIds;
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>, targetPlayerId: string) => {
+      e.preventDefault();
+      if (draggedPlayerId && draggedPlayerId !== targetPlayerId) {
+          setDragOverPlayerId(targetPlayerId);
       }
-      return prevIds;
-    });
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setDragOverPlayerId(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetPlayerId: string) => {
+      e.preventDefault();
+      if (!draggedPlayerId || draggedPlayerId === targetPlayerId) {
+          handleDragEnd();
+          return;
+      }
+
+      setWaitingListIds(prevIds => {
+          const newIds = [...prevIds];
+          const draggedIndex = newIds.indexOf(draggedPlayerId);
+          const targetIndex = newIds.indexOf(targetPlayerId);
+
+          if (draggedIndex === -1 || targetIndex === -1) {
+              return prevIds;
+          }
+
+          const [draggedItem] = newIds.splice(draggedIndex, 1);
+          newIds.splice(targetIndex, 0, draggedItem);
+          
+          return newIds;
+      });
+
+      handleDragEnd();
+  };
+
+  const handleDragEnd = () => {
+      setDraggedPlayerId(null);
+      setDragOverPlayerId(null);
   };
 
   const handleInterimMatchWin = (winningTeamData: Team, losingTeamData: Team) => {
@@ -709,10 +741,15 @@ export function RotacionDeportiva() {
                                             onRemove={handleRemovePlayer} 
                                             onAssign={handleAssignPlayer}
                                             showAssign={index === 0}
-                                            onMoveUp={handleMovePlayerUp}
-                                            onMoveDown={handleMovePlayerDown}
-                                            isFirst={index === 0}
-                                            isLast={index === waitingPlayers.length - 1}
+                                            draggable={true}
+                                            onDragStart={(e) => handleDragStart(e, p.id)}
+                                            onDragEnter={(e) => handleDragEnter(e, p.id)}
+                                            onDragLeave={handleDragLeave}
+                                            onDragOver={handleDragOver}
+                                            onDrop={(e) => handleDrop(e, p.id)}
+                                            onDragEnd={handleDragEnd}
+                                            isDragging={draggedPlayerId === p.id}
+                                            isDraggingOver={dragOverPlayerId === p.id && draggedPlayerId !== p.id}
                                             isTeamAFull={teamA.players.length >= 5}
                                             isTeamBFull={teamB.players.length >= 5}
                                         />
