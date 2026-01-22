@@ -38,7 +38,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, isTeamAFull, isTeamBFull, draggable, onDragStart, onDragEnter, onDragLeave, onDragOver, onDrop, onDragEnd, isDragging, isDraggingOver, onEdit, onMoveInWaitingList, isFirstInList, isLastInList }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, isTeamAFull?: boolean, isTeamBFull?: boolean, draggable?: boolean, onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void, onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void, onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void, onDrop?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void, isDragging?: boolean, isDraggingOver?: boolean, onEdit?: (id: string) => void, onMoveInWaitingList?: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void, isFirstInList?: boolean, isLastInList?: boolean }) => (
+const usePrevious = <T,>(value: T): T | undefined => {
+  const ref = useRef<T>();
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  return ref.current;
+};
+
+
+const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, isTeamAFull, isTeamBFull, draggable, onDragStart, onDragEnter, onDragLeave, onDragOver, onDrop, onDragEnd, isDragging, isDraggingOver, onEdit, onMoveInWaitingList, isFirstInList, isLastInList, justMoved }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, isTeamAFull?: boolean, isTeamBFull?: boolean, draggable?: boolean, onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void, onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void, onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void, onDrop?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void, isDragging?: boolean, isDraggingOver?: boolean, onEdit?: (id: string) => void, onMoveInWaitingList?: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void, isFirstInList?: boolean, isLastInList?: boolean, justMoved?: boolean }) => (
   <div 
     draggable={draggable}
     onDragStart={onDragStart}
@@ -48,8 +57,8 @@ const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, 
     onDrop={onDrop}
     onDragEnd={onDragEnd}
     className={cn(
-    "relative flex items-center justify-between p-3 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md",
-    isChampion ? "bg-amber-500" : "bg-slate-700",
+    "relative flex items-center justify-between p-3 rounded-lg shadow-sm transition-colors duration-1000 ease-out hover:shadow-md",
+    isChampion ? "bg-amber-500" : justMoved ? "bg-sky-600" : "bg-slate-700",
     draggable && "cursor-move",
     isDragging && "opacity-50",
     isDraggingOver && "ring-2 ring-sky-400"
@@ -201,6 +210,9 @@ export function RotacionDeportiva() {
   const [savedWaitingList, setSavedWaitingList] = useState<string[] | null>(null);
   const [savedPlayers, setSavedPlayers] = useState<Player[] | null>(null);
 
+  const [justMovedPlayerIds, setJustMovedPlayerIds] = useState<Set<string>>(new Set());
+  const prevWaitingListIds = usePrevious(waitingListIds);
+
   const { toast } = useToast();
 
   const STORAGE_KEYS = useMemo(() => ({
@@ -266,6 +278,31 @@ export function RotacionDeportiva() {
       console.error("Error al guardar datos en localStorage", error);
     }
   }, [players, waitingListIds, teamA, teamB, championsTeam, winsToChampion, savedWaitingList, savedPlayers, isLoaded, STORAGE_KEYS]);
+
+
+  useEffect(() => {
+    if (prevWaitingListIds) {
+        const movedIds = new Set<string>();
+
+        const prevOrderMap = new Map(prevWaitingListIds.map((id, index) => [id, index]));
+
+        waitingListIds.forEach((id, newIndex) => {
+            const oldIndex = prevOrderMap.get(id);
+            // Highlight if the index is different, and it's not a new player
+            if (oldIndex !== undefined && oldIndex !== newIndex) {
+                movedIds.add(id);
+            }
+        });
+        
+        if (movedIds.size > 0) {
+            setJustMovedPlayerIds(movedIds);
+            const timer = setTimeout(() => {
+                setJustMovedPlayerIds(new Set());
+            }, 1500); // Highlight for 1.5 seconds
+            return () => clearTimeout(timer);
+        }
+    }
+  }, [waitingListIds, prevWaitingListIds]);
 
 
   const waitingPlayers = useMemo(() => {
@@ -919,6 +956,7 @@ export function RotacionDeportiva() {
                                             onMoveInWaitingList={handleMoveInWaitingList}
                                             isFirstInList={index === 0}
                                             isLastInList={index === waitingPlayers.length - 1}
+                                            justMoved={justMovedPlayerIds.has(p.id)}
                                         />
                                     ))
                                 ) : (
@@ -1139,4 +1177,5 @@ export function RotacionDeportiva() {
     </div>
   );
 }
+
 
