@@ -35,6 +35,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 
 const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, isTeamAFull, isTeamBFull, draggable, onDragStart, onDragEnter, onDragLeave, onDragOver, onDrop, onDragEnd, isDragging, isDraggingOver, onEdit }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, isTeamAFull?: boolean, isTeamBFull?: boolean, draggable?: boolean, onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void, onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void, onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void, onDrop?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void, isDragging?: boolean, isDraggingOver?: boolean, onEdit?: (id: string) => void }) => (
   <div 
@@ -315,40 +316,71 @@ export function RotacionDeportiva() {
   };
 
   const handleAddPlayer = () => {
-    let playerName = newPlayerName.trim();
-    
-    if (playerName === '') {
+    // Split by newline, trim, and remove empty strings.
+    const names = newPlayerName.split('\n').map(name => name.trim()).filter(Boolean);
+
+    // If after all that, there are no names, and the original input was also empty,
+    // we create a default player.
+    if (names.length === 0 && newPlayerName.trim() === '') {
         let playerNumber = 1;
         let proposedName = `Jugador ${playerNumber}`;
-        while (players.some(p => p.name === proposedName)) {
+        while (players.some(p => p.name.toLowerCase() === proposedName.toLowerCase())) {
             playerNumber++;
             proposedName = `Jugador ${playerNumber}`;
         }
-        playerName = proposedName;
-    } else {
-        if (players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
-            toast({
-                variant: 'destructive',
-                title: "Nombre duplicado",
-                description: `Ya existe un jugador con el nombre "${playerName}".`
-            });
-            return;
+        names.push(proposedName);
+    }
+    
+    if (names.length === 0) {
+        setNewPlayerName('');
+        return;
+    }
+
+    const newPlayers: Player[] = [];
+    const addedNames: string[] = [];
+    const duplicatedNames: string[] = [];
+    // Use a Set for efficient duplicate checking within the new batch
+    const newNamesLC = new Set<string>();
+
+    for (const name of names) {
+        const nameLC = name.toLowerCase();
+        // Check against existing players AND players in this batch
+        if (players.some(p => p.name.toLowerCase() === nameLC) || newNamesLC.has(nameLC)) {
+            duplicatedNames.push(name);
+        } else {
+            const newPlayer: Player = {
+              id: crypto.randomUUID(),
+              name: name,
+              wins: 0,
+              losses: 0,
+              winRate: 0,
+              consecutiveWins: 0,
+              createdAt: Date.now() + newPlayers.length, // Stagger for sort stability
+            };
+            newPlayers.push(newPlayer);
+            addedNames.push(name);
+            newNamesLC.add(nameLC);
         }
     }
 
-    const newPlayer: Player = {
-      id: crypto.randomUUID(),
-      name: playerName,
-      wins: 0,
-      losses: 0,
-      winRate: 0,
-      consecutiveWins: 0,
-      createdAt: Date.now()
-    };
-    setPlayers(prev => [...prev, newPlayer]);
-    setWaitingListIds(prev => [...prev, newPlayer.id]);
+    if (newPlayers.length > 0) {
+        setPlayers(prev => [...prev, ...newPlayers]);
+        setWaitingListIds(prev => [...prev, ...newPlayers.map(p => p.id)]);
+        toast({
+            title: `${newPlayers.length > 1 ? 'Jugadores Añadidos' : 'Jugador Añadido'}`,
+            description: `${addedNames.join(', ')} está(n) en la lista de espera.`
+        });
+    }
+
+    if (duplicatedNames.length > 0) {
+        toast({
+            variant: 'destructive',
+            title: "Nombres duplicados",
+            description: `Ya existen y no fueron añadidos: ${duplicatedNames.join(', ')}.`
+        });
+    }
+
     setNewPlayerName('');
-    toast({ title: "Jugador Añadido", description: `${newPlayer.name} está ahora en la lista de espera.` });
   };
 
   const handleRemovePlayer = (id: string) => {
@@ -559,7 +591,7 @@ export function RotacionDeportiva() {
       }
       
       const winningTeamConsecutiveWins = winningTeamWithStats.map(p => p.consecutiveWins);
-      const teamHasReachedChampionStatus = championRule && winningTeamConsecutiveWins.every(w => w >= winsNeeded);
+      const teamHasReachedChampionStatus = championRule && winningTeamWithStats.every(p => p.consecutiveWins >= winsNeeded);
   
       if (teamHasReachedChampionStatus) {
           // New champions crowned
@@ -783,12 +815,11 @@ export function RotacionDeportiva() {
                   <CardTitle className="flex items-center gap-2 text-sky-400"><Plus/> Añadir Nuevo Jugador</CardTitle>
               </CardHeader>
               <CardContent>
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Ej., Nombre del Jugador" 
+                  <div className="flex flex-col gap-2">
+                    <Textarea 
+                      placeholder="Añadir un jugador por línea o pegar una lista." 
                       value={newPlayerName}
                       onChange={(e) => setNewPlayerName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer()}
                       className="bg-slate-700 border-slate-600 placeholder:text-slate-500"
                     />
                     <Button onClick={handleAddPlayer} className="bg-sky-600 hover:bg-sky-700 text-white">Añadir</Button>
@@ -1048,3 +1079,4 @@ export function RotacionDeportiva() {
     </div>
   );
 }
+
