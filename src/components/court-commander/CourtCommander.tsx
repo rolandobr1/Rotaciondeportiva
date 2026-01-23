@@ -668,8 +668,8 @@ export function RotacionDeportiva() {
               setChampionsTeam(null);
               // Fall through to standard rotation logic by setting wasChampionMatch to false
           } else {
-              setTeamA({ name: championsTeam!.name, players: championPlayersWithStats });
-              setTeamB({ name: winningTeamData.name, players: winningTeamWithStats });
+              setTeamA({ name: deriveTeamName(championPlayersWithStats, championsTeam!.name), players: championPlayersWithStats });
+              setTeamB({ name: deriveTeamName(winningTeamWithStats, winningTeamData.name), players: winningTeamWithStats });
               setChampionsTeam(null);
               const loserIds = losingTeamData.players.map(p => p.id);
               setWaitingListIds(currentIds => [...currentIds, ...loserIds].sort((a,b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt));
@@ -876,7 +876,8 @@ export function RotacionDeportiva() {
       setEditedPlayerName('');
   };
 
-  
+  const teamsAreFull = teamA.players.length >= 5 && teamB.players.length >= 5;
+
   if (!isLoaded) {
       return (
           <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-2 sm:p-4 flex items-center justify-center">
@@ -977,7 +978,7 @@ export function RotacionDeportiva() {
                                             key={p.id} 
                                             player={p}
                                             turn={index + 1}
-                                            onAssign={handleAssignPlayerToTeam}
+                                            onAssign={teamsAreFull ? undefined : handleAssignPlayerToTeam}
                                             onRemove={handleRemovePlayer}
                                             draggable={true}
                                             onDragStart={(e) => handleDragStart(e, p.id)}
@@ -1220,3 +1221,4 @@ export function RotacionDeportiva() {
     
 
     
+
