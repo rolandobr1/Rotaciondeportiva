@@ -226,6 +226,14 @@ export function RotacionDeportiva() {
     SAVED_PLAYERS: 'rotacionDeportiva.savedPlayers_v2',
   }), []);
   
+  const deriveTeamName = (players: Player[], defaultName: string): string => {
+      if (players.length > 0) {
+          // The first player in the array dictates the name.
+          return `Equipo ${players[0].name}`;
+      }
+      return defaultName;
+  };
+
   useEffect(() => {
     try {
       const storedPlayers = localStorage.getItem(STORAGE_KEYS.PLAYERS);
@@ -460,13 +468,14 @@ export function RotacionDeportiva() {
         setPlayers(p => p.filter(player => player.id !== id));
         setWaitingListIds(ids => ids.filter(playerId => playerId !== id));
         
-        const removePlayerFromTeam = (team: Team) => {
+        const removePlayerFromTeam = (team: Team, defaultName: string) => {
             const newPlayers = team.players.filter(p => p.id !== id);
-            return { ...team, players: newPlayers };
+            return { ...team, players: newPlayers, name: deriveTeamName(newPlayers, defaultName) };
         };
 
-        setTeamA(removePlayerFromTeam);
-        setTeamB(removePlayerFromTeam);
+        setTeamA(t => removePlayerFromTeam(t, 'Equipo A'));
+        setTeamB(t => removePlayerFromTeam(t, 'Equipo B'));
+
         setChampionsTeam(ct => {
             if (!ct) return null;
             const newPlayers = ct.players.filter(p => p.id !== id);
@@ -495,13 +504,16 @@ export function RotacionDeportiva() {
     }
 
     const newTeamPlayers = [...targetTeam.players, player];
-    setTargetTeam({ players: newTeamPlayers, name: team === 'A' ? 'Equipo A' : 'Equipo B' });
+    const teamName = deriveTeamName(newTeamPlayers, team === 'A' ? 'Equipo A' : 'Equipo B');
+    setTargetTeam({ players: newTeamPlayers, name: teamName });
+
     let updatedWaitingIds = waitingListIds.filter(id => id !== playerId);
 
     if (newTeamPlayers.length === 5 && otherTeam.players.length === 0 && updatedWaitingIds.length >= 5) {
         const playerMap = new Map(players.map(p => [p.id, p]));
         const playersForOtherTeam = updatedWaitingIds.slice(0, 5).map(id => playerMap.get(id)!).filter(Boolean);
-        setOtherTeam({ players: playersForOtherTeam, name: otherTeamAutoFill === 'A' ? 'Equipo A' : 'Equipo B' });
+        const otherTeamName = deriveTeamName(playersForOtherTeam, otherTeamAutoFill === 'A' ? 'Equipo A' : 'Equipo B');
+        setOtherTeam({ players: playersForOtherTeam, name: otherTeamName });
         setWaitingListIds(updatedWaitingIds.slice(5));
         toast({
             title: `Equipo ${otherTeamAutoFill} auto-completado`,
@@ -522,10 +534,16 @@ export function RotacionDeportiva() {
     if (!wasInTeamA && !wasInTeamB) return;
 
     if (wasInTeamA) {
-      setTeamA(t => ({...t, players: t.players.filter(p => p.id !== playerId)}));
+      setTeamA(t => {
+          const newPlayers = t.players.filter(p => p.id !== playerId);
+          return { ...t, players: newPlayers, name: deriveTeamName(newPlayers, 'Equipo A') };
+      });
     }
     if (wasInTeamB) {
-      setTeamB(t => ({...t, players: t.players.filter(p => p.id !== playerId)}));
+      setTeamB(t => {
+          const newPlayers = t.players.filter(p => p.id !== playerId);
+          return { ...t, players: newPlayers, name: deriveTeamName(newPlayers, 'Equipo B') };
+      });
     }
 
     setWaitingListIds(currentIds => {
@@ -677,8 +695,8 @@ export function RotacionDeportiva() {
           } else {
               const interimA = newWaitingList.slice(0, 5).map(id => playerMap.get(id)!);
               const interimB = newWaitingList.slice(5, 10).map(id => playerMap.get(id)!);
-              setTeamA({ name: 'Equipo A', players: interimA });
-              setTeamB({ name: 'Equipo B', players: interimB });
+              setTeamA({ name: deriveTeamName(interimA, 'Equipo A'), players: interimA });
+              setTeamB({ name: deriveTeamName(interimB, 'Equipo B'), players: interimB });
               setWaitingListIds(newWaitingList.slice(10));
               toast({ title: "Partido Interino", description: "Se ha formado un nuevo partido para decidir el próximo retador." });
           }
@@ -702,9 +720,9 @@ export function RotacionDeportiva() {
               const newChallengers = newWaitingList.slice(0, 5).map(id => playerMap.get(id)!);
               if (winner === 'A') {
                   setTeamA({ name: teamA.name, players: winningTeamWithStats });
-                  setTeamB({ name: 'Equipo B', players: newChallengers });
+                  setTeamB({ name: deriveTeamName(newChallengers, 'Equipo B'), players: newChallengers });
               } else {
-                  setTeamA({ name: 'Equipo A', players: newChallengers });
+                  setTeamA({ name: deriveTeamName(newChallengers, 'Equipo A'), players: newChallengers });
                   setTeamB({ name: teamB.name, players: winningTeamWithStats });
               }
               setWaitingListIds(newWaitingList.slice(5));
@@ -826,10 +844,29 @@ export function RotacionDeportiva() {
           playerList.map(p => p.id === editingPlayer.id ? { ...p, name: newName } : p);
 
       setPlayers(prev => applyUpdate(prev));
-      setTeamA(prev => ({ ...prev, players: applyUpdate(prev.players) }));
-      setTeamB(prev => ({ ...prev, players: applyUpdate(prev.players) }));
+
+      const updateTeam = (team: Team, defaultName: string) => {
+          const updatedPlayers = applyUpdate(team.players);
+          return {
+              ...team,
+              players: updatedPlayers,
+              name: deriveTeamName(updatedPlayers, defaultName),
+          };
+      };
+      
+      setTeamA(prev => updateTeam(prev, 'Equipo A'));
+      setTeamB(prev => updateTeam(prev, 'Equipo B'));
+
       if (championsTeam) {
-          setChampionsTeam(prev => prev ? { ...prev, players: applyUpdate(prev.players) } : null);
+          setChampionsTeam(prev => {
+              if (!prev) return null;
+              const updatedPlayers = applyUpdate(prev.players);
+              return {
+                  ...prev,
+                  players: updatedPlayers,
+                  name: deriveTeamName(updatedPlayers, prev.name),
+              };
+          });
       }
       
       toast({ title: "Jugador Actualizado", description: `El nombre se ha cambiado a ${newName}.` });
@@ -1179,3 +1216,6 @@ export function RotacionDeportiva() {
 }
 
 
+
+
+    
