@@ -47,7 +47,7 @@ const usePrevious = <T,>(value: T): T | undefined => {
 };
 
 
-const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, isTeamAFull, isTeamBFull, draggable, onDragStart, onDragEnter, onDragLeave, onDragOver, onDrop, onDragEnd, isDragging, isDraggingOver, onEdit, onMoveInWaitingList, isFirstInList, isLastInList, justMoved }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, showAssign?: boolean, isChampion?: boolean, turn?: number, isTeamAFull?: boolean, isTeamBFull?: boolean, draggable?: boolean, onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void, onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void, onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void, onDrop?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void, isDragging?: boolean, isDraggingOver?: boolean, onEdit?: (id: string) => void, onMoveInWaitingList?: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void, isFirstInList?: boolean, isLastInList?: boolean, justMoved?: boolean }) => (
+const PlayerCard = ({ player, onRemove, isChampion, turn, draggable, onDragStart, onDragEnter, onDragLeave, onDragOver, onDrop, onDragEnd, isDragging, isDraggingOver, onEdit, onMoveInWaitingList, isFirstInList, isLastInList, justMoved }: { player: Player, onRemove?: (id: string) => void, isChampion?: boolean, turn?: number, draggable?: boolean, onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void, onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void, onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void, onDrop?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void, isDragging?: boolean, isDraggingOver?: boolean, onEdit?: (id: string) => void, onMoveInWaitingList?: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void, isFirstInList?: boolean, isLastInList?: boolean, justMoved?: boolean }) => (
   <div 
     draggable={draggable}
     onDragStart={onDragStart}
@@ -83,13 +83,6 @@ const PlayerCard = ({ player, onRemove, onAssign, showAssign, isChampion, turn, 
         </div>
     </div>
     <div className="flex items-center gap-1 flex-shrink-0">
-      {showAssign && onAssign && (
-        <>
-          <Button size="sm" onClick={() => onAssign(player.id, 'A')} className="h-7 w-7 p-0 bg-sky-700 hover:bg-sky-600 text-white border-none disabled:bg-slate-600 disabled:opacity-50" disabled={isTeamAFull}>A</Button>
-          <Button size="sm" onClick={() => onAssign(player.id, 'B')} className="h-7 w-7 p-0 bg-teal-700 hover:bg-teal-600 text-white border-none disabled:bg-slate-600 disabled:opacity-50" disabled={isTeamBFull}>B</Button>
-        </>
-      )}
-
       {onMoveInWaitingList && (
         <div className="flex items-center">
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onMoveInWaitingList(player.id, 'up')} disabled={isFirstInList}>
@@ -488,41 +481,46 @@ export function RotacionDeportiva() {
     confirmAndRemove();
   };
   
-  const handleAssignPlayer = (playerId: string, team: 'A' | 'B') => {
-    const player = players.find(p => p.id === playerId);
-    if (!player) return;
+  const handleAutoFormTeams = () => {
+    if (waitingPlayers.length < 10) {
+        toast({
+            variant: 'destructive',
+            title: 'No hay suficientes jugadores',
+            description: 'Se necesitan al menos 10 jugadores en la lista de espera.',
+        });
+        return;
+    }
     
-    const targetTeam = team === 'A' ? teamA : teamB;
-    const setTargetTeam = team === 'A' ? setTeamA : setTeamB;
-    const otherTeam = team === 'A' ? teamB : teamA;
-    const setOtherTeam = team === 'A' ? setTeamB : setTeamA;
-    const otherTeamAutoFill = team === 'A' ? 'B' : 'A';
-
-    if (targetTeam.players.length >= 5) {
-        toast({ variant: 'destructive', title: `Equipo ${team} ya está lleno.` });
+    if (teamA.players.length > 0 || teamB.players.length > 0) {
+        toast({
+            variant: 'destructive',
+            title: 'Los equipos ya tienen jugadores',
+            description: 'Vacíe los equipos antes de formarlos automáticamente.',
+        });
         return;
     }
 
-    const newTeamPlayers = [...targetTeam.players, player];
-    const teamName = deriveTeamName(newTeamPlayers, team === 'A' ? 'Equipo A' : 'Equipo B');
-    setTargetTeam({ players: newTeamPlayers, name: teamName });
+    const playerMap = new Map(players.map(p => [p.id, p]));
+    const newTeamAPlayers = waitingListIds.slice(0, 5).map(id => playerMap.get(id)!).filter(Boolean);
+    const newTeamBPlayers = waitingListIds.slice(5, 10).map(id => playerMap.get(id)!).filter(Boolean);
 
-    let updatedWaitingIds = waitingListIds.filter(id => id !== playerId);
+    setTeamA({
+        name: deriveTeamName(newTeamAPlayers, 'Equipo A'),
+        players: newTeamAPlayers,
+    });
 
-    if (newTeamPlayers.length === 5 && otherTeam.players.length === 0 && updatedWaitingIds.length >= 5) {
-        const playerMap = new Map(players.map(p => [p.id, p]));
-        const playersForOtherTeam = updatedWaitingIds.slice(0, 5).map(id => playerMap.get(id)!).filter(Boolean);
-        const otherTeamName = deriveTeamName(playersForOtherTeam, otherTeamAutoFill === 'A' ? 'Equipo A' : 'Equipo B');
-        setOtherTeam({ players: playersForOtherTeam, name: otherTeamName });
-        setWaitingListIds(updatedWaitingIds.slice(5));
-        toast({
-            title: `Equipo ${otherTeamAutoFill} auto-completado`,
-            description: "Los 5 siguientes jugadores han formado el equipo.",
-        });
-    } else {
-        setWaitingListIds(updatedWaitingIds);
-    }
-  };
+    setTeamB({
+        name: deriveTeamName(newTeamBPlayers, 'Equipo B'),
+        players: newTeamBPlayers,
+    });
+
+    setWaitingListIds(prev => prev.slice(10));
+
+    toast({
+        title: 'Equipos formados automáticamente',
+        description: 'Los primeros 10 jugadores de la lista han formado los equipos.',
+    });
+};
 
   const handleRemoveFromTeam = (playerId: string) => {
     const playerToRemove = players.find(p => p.id === playerId);
@@ -959,6 +957,24 @@ export function RotacionDeportiva() {
             </Card>
 
             <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sky-400"><Swords/> Formar Equipos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={handleAutoFormTeams}
+                  disabled={waitingPlayers.length < 10 || teamA.players.length > 0 || teamB.players.length > 0}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white disabled:bg-slate-600 disabled:opacity-50"
+                >
+                  Formar Equipos Iniciales
+                </Button>
+                <p className="text-xs text-slate-400 mt-2 text-center">
+                  Toma los primeros 10 jugadores de la lista para crear los equipos.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800 border-slate-700">
                 <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
                     <AccordionItem value="item-1" className="border-b-0">
                         <AccordionTrigger className="p-6 hover:no-underline">
@@ -975,9 +991,7 @@ export function RotacionDeportiva() {
                                             key={p.id} 
                                             player={p}
                                             turn={index + 1}
-                                            onRemove={handleRemovePlayer} 
-                                            onAssign={handleAssignPlayer}
-                                            showAssign={index === 0}
+                                            onRemove={handleRemovePlayer}
                                             draggable={true}
                                             onDragStart={(e) => handleDragStart(e, p.id)}
                                             onDragEnter={(e) => handleDragEnter(e, p.id)}
@@ -987,8 +1001,6 @@ export function RotacionDeportiva() {
                                             onDragEnd={handleDragEnd}
                                             isDragging={draggedPlayerId === p.id}
                                             isDraggingOver={dragOverPlayerId === p.id && draggedPlayerId !== p.id}
-                                            isTeamAFull={teamA.players.length >= 5}
-                                            isTeamBFull={teamB.players.length >= 5}
                                             onEdit={handleOpenEditPlayer}
                                             onMoveInWaitingList={handleMoveInWaitingList}
                                             isFirstInList={index === 0}
