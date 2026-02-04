@@ -55,5 +55,14 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  input, textarea {
+    -webkit-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
   }
 }
