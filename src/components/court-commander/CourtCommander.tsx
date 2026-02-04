@@ -575,19 +575,47 @@ export function RotacionDeportiva() {
     const playerToRemove = championsTeam.players.find(p => p.id === playerId);
     if (!playerToRemove) return;
 
-    let newChampionPlayers = championsTeam.players.filter(p => p.id !== playerId);
-    
-    setWaitingListIds(currentIds => [...currentIds, playerId]);
+    // Check if there is a replacement available in the waiting list
+    if (waitingPlayers.length > 0) {
+      const replacementPlayer = waitingPlayers[0]; // The next player in line
 
-    if (newChampionPlayers.length === 0) {
-        setChampionsTeam(null);
-        toast({ title: "Equipo Campeón Disuelto", description: "No quedan jugadores en el equipo campeón."});
+      // The list of champion players with the replacement swapped in
+      const newChampionPlayers = championsTeam.players.map(p => 
+        p.id === playerId ? replacementPlayer : p
+      );
+      
+      // Update waiting list: remove the replacement from the top, add the removed champion to the bottom
+      const newWaitingListIds = [...waitingListIds.slice(1), playerId];
+
+      setChampionsTeam({
+        ...championsTeam,
+        players: newChampionPlayers,
+        name: deriveTeamName(newChampionPlayers, championsTeam.name) // Update name in case first player changed
+      });
+      setWaitingListIds(newWaitingListIds);
+
+      toast({
+        title: "Sustitución de Campeón",
+        description: `${replacementPlayer.name} reemplaza a ${playerToRemove.name} en el equipo campeón.`
+      });
+
     } else {
-        setChampionsTeam({
-            ...championsTeam,
-            players: newChampionPlayers,
-        });
-        toast({ title: "Campeón en Espera", description: `${playerToRemove.name} ha vuelto a la lista de espera.` });
+      // No replacement available. Just remove the player from the champions and add to waiting list.
+      const newChampionPlayers = championsTeam.players.filter(p => p.id !== playerId);
+      
+      setWaitingListIds(currentIds => [...currentIds, playerId]);
+
+      if (newChampionPlayers.length === 0) {
+          setChampionsTeam(null);
+          toast({ title: "Equipo Campeón Disuelto", description: "No quedan jugadores en el equipo campeón."});
+      } else {
+          setChampionsTeam({
+              ...championsTeam,
+              players: newChampionPlayers,
+              name: deriveTeamName(newChampionPlayers, championsTeam.name) // Update name in case first player changed
+          });
+          toast({ title: "Campeón en Espera", description: `${playerToRemove.name} ha vuelto a la lista de espera (no hay sustitutos).` });
+      }
     }
   };
 
