@@ -164,7 +164,7 @@ const updatePlayerStats = (players: Player[], winningTeam: Team, losingTeam: Tea
       return {
         ...p,
         wins: newWins,
-        consecutiveWins: wasChampion ? (p.consecutiveWins || 0) + 1 : (p.consecutiveWins || 0) + 1,
+        consecutiveWins: (p.consecutiveWins || 0) + 1,
         winRate: newWins / (newWins + p.losses),
       };
     }
@@ -1248,16 +1248,3 @@ export function RotacionDeportiva() {
     </div>
   );
 }
-
-
-
-
-    
-
-    
-
-    
-
-    
-
-    
