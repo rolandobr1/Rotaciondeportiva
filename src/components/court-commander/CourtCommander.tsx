@@ -981,7 +981,7 @@ export function RotacionDeportiva() {
                                             key={p.id} 
                                             player={p}
                                             turn={index + 1}
-                                            onAssign={teamsAreFull ? undefined : handleAssignPlayerToTeam}
+                                            onAssign={index === 0 && !teamsAreFull ? handleAssignPlayerToTeam : undefined}
                                             onRemove={handleRemovePlayer}
                                             draggable={true}
                                             onDragStart={(e) => handleDragStart(e, p.id)}
@@ -1212,6 +1212,8 @@ export function RotacionDeportiva() {
 
 
 
+
+    
 
     
 
