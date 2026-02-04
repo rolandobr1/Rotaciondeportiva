@@ -353,13 +353,8 @@ export function RotacionDeportiva() {
   const handleConfirmDisableChampionRule = () => {
     setChampionRule(false);
     if (championsTeam) {
-      const playerMap = new Map(players.map(p => [p.id, p]));
-      const sortedChampions = championsTeam.players
-        .map(p => playerMap.get(p.id)!)
-        .filter(Boolean)
-        .sort((a, b) => a.createdAt - b.createdAt);
-
-      setWaitingListIds(prev => [...prev, ...sortedChampions.map(p => p.id)]);
+      const championIds = championsTeam.players.map(p => p.id);
+      setWaitingListIds(prev => [...prev, ...championIds]);
       setChampionsTeam(null);
       toast({
         title: "Regla Desactivada",
@@ -547,13 +542,8 @@ export function RotacionDeportiva() {
           return { ...t, players: newPlayers, name: deriveTeamName(newPlayers, 'Equipo B') };
       });
     }
-
-    setWaitingListIds(currentIds => {
-      const newIds = [...currentIds, playerId];
-      const playerMap = new Map(players.map(p => [p.id, p]));
-      newIds.sort((a,b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt);
-      return newIds;
-    });
+    
+    setWaitingListIds(currentIds => [...currentIds, playerId]);
 
     toast({ title: "Jugador en Espera", description: `${playerToRemove.name} ha vuelto a la lista de espera.` });
   };
@@ -566,12 +556,7 @@ export function RotacionDeportiva() {
 
     let newChampionPlayers = championsTeam.players.filter(p => p.id !== playerId);
     
-    setWaitingListIds(currentIds => {
-        const newIds = [...currentIds, playerId];
-        const playerMap = new Map(players.map(p => [p.id, p]));
-        newIds.sort((a,b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt);
-        return newIds;
-    });
+    setWaitingListIds(currentIds => [...currentIds, playerId]);
 
     if (newChampionPlayers.length === 0) {
         setChampionsTeam(null);
@@ -672,7 +657,7 @@ export function RotacionDeportiva() {
               setTeamB({ name: deriveTeamName(winningTeamWithStats, winningTeamData.name), players: winningTeamWithStats });
               setChampionsTeam(null);
               const loserIds = losingTeamData.players.map(p => p.id);
-              setWaitingListIds(currentIds => [...currentIds, ...loserIds].sort((a,b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt));
+              setWaitingListIds(currentIds => [...currentIds, ...loserIds]);
               setPlayers(allPlayersAfterStats);
               toast({ title: "¡Duelo de Campeones!", description: `${championsTeam!.name} vs. ${winningTeamData.name}` });
               return;
@@ -687,7 +672,7 @@ export function RotacionDeportiva() {
           setChampionsTeam({ name: winningTeamData.name, players: winningTeamWithStats });
           
           const loserIds = losingTeamData.players.map(p => p.id);
-          const newWaitingList = [...waitingListIds, ...loserIds].sort((a, b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt);
+          const newWaitingList = [...waitingListIds, ...loserIds];
   
           if (newWaitingList.length < 10) {
               toast({ variant: 'destructive', title: "No hay suficientes retadores", description: "Los equipos se han vaciado. No hay suficientes jugadores para un partido interino." });
@@ -705,7 +690,7 @@ export function RotacionDeportiva() {
       } else {
           // Standard rotation
           const loserIds = losingTeamData.players.map(p => p.id);
-          const newWaitingList = [...waitingListIds, ...loserIds].sort((a, b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt);
+          const newWaitingList = [...waitingListIds, ...loserIds];
           
           if (newWaitingList.length < 5) {
               toast({ variant: 'destructive', title: "No hay suficientes retadores", description: "El equipo ganador se queda en la cancha, pero no hay suficientes jugadores para formar un equipo retador." });
@@ -763,10 +748,8 @@ export function RotacionDeportiva() {
   const handleReturnChampionToWaitingList = () => {
     if (!championsTeam) return;
 
-    const playerMap = new Map(players.map(p => [p.id, p]));
     const championIds = championsTeam.players.map(p => p.id);
-    
-    setWaitingListIds(prev => [...prev, ...championIds].sort((a,b) => playerMap.get(a)!.createdAt - playerMap.get(b)!.createdAt));
+    setWaitingListIds(prev => [...prev, ...championIds]);
     setChampionsTeam(null);
   };
 
@@ -789,27 +772,27 @@ export function RotacionDeportiva() {
         return;
     }
 
-    const savedPlayerMap = new Map(savedPlayers.map(p => [p.id, p]));
-
-    const allPlayerIds = [...new Set([...savedPlayers.map(p => p.id), ...players.map(p => p.id)])];
-    const restoredPlayers = allPlayerIds.map(id => savedPlayerMap.get(id) || players.find(p => p.id === id)!);
+    const allCurrentPlayerIds = new Set(players.map(p => p.id));
+    const restoredPlayers = [...savedPlayers];
     
+    // Add players that exist in current state but not in saved state
+    players.forEach(p => {
+        if (!restoredPlayers.some(sp => sp.id === p.id)) {
+            restoredPlayers.push(p);
+        }
+    });
+
     const restoredWaitingListIds = [...savedWaitingList];
+    
+    // Add any player that is not in any team and not in the waiting list
     restoredPlayers.forEach(p => {
         if (!restoredWaitingListIds.includes(p.id)) {
             restoredWaitingListIds.push(p.id);
         }
     });
 
-    const finalWaitingList = restoredWaitingListIds.sort((a, b) => {
-        const playerA = savedPlayerMap.get(a);
-        const playerB = savedPlayerMap.get(b);
-        if (playerA && playerB) return playerA.createdAt - playerB.createdAt;
-        return 0;
-    });
-
     setPlayers(restoredPlayers);
-    setWaitingListIds(finalWaitingList);
+    setWaitingListIds(restoredWaitingListIds);
     setTeamA({ name: 'Equipo A', players: [] });
     setTeamB({ name: 'Equipo B', players: [] });
     setChampionsTeam(null);
@@ -1222,3 +1205,4 @@ export function RotacionDeportiva() {
 
     
 
+    
