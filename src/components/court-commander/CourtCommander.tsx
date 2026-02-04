@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Player, Team } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -211,6 +211,7 @@ export function RotacionDeportiva() {
 
   const [justMovedPlayerIds, setJustMovedPlayerIds] = useState<Set<string>>(new Set());
   const prevWaitingListIds = usePrevious(waitingListIds);
+  const prevWaitingListLength = usePrevious(waitingListIds.length);
 
   const { toast } = useToast();
 
@@ -310,6 +311,25 @@ export function RotacionDeportiva() {
         }
     }
   }, [waitingListIds, prevWaitingListIds]);
+  
+  const handleSaveWaitingList = useCallback((silent: boolean = false) => {
+    setSavedPlayers([...players]);
+    setSavedWaitingList([...waitingListIds]);
+    if (!silent) {
+      toast({
+          title: "Lista de Espera Guardada",
+          description: "Se ha guardado una instantánea del estado actual de los jugadores.",
+      });
+    }
+  }, [players, waitingListIds, toast]);
+
+  useEffect(() => {
+    if (isLoaded && prevWaitingListLength !== undefined && waitingListIds.length > prevWaitingListLength) {
+      if (waitingListIds.length > 10) {
+        handleSaveWaitingList(true); // Auto-save silently
+      }
+    }
+  }, [isLoaded, waitingListIds.length, prevWaitingListLength, handleSaveWaitingList]);
 
 
   const waitingPlayers = useMemo(() => {
@@ -754,15 +774,6 @@ export function RotacionDeportiva() {
     setChampionsTeam(null);
   };
 
-  const handleSaveWaitingList = () => {
-    setSavedPlayers([...players]);
-    setSavedWaitingList([...waitingListIds]);
-    toast({
-        title: "Lista de Espera Guardada",
-        description: "Se ha guardado una instantánea del estado actual de los jugadores.",
-    });
-  };
-
   const handleRestoreWaitingList = () => {
     if (!savedPlayers || !savedWaitingList) {
         toast({
@@ -952,7 +963,7 @@ export function RotacionDeportiva() {
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col sm:flex-row gap-2">
-                        <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700" onClick={handleSaveWaitingList}>
+                        <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700" onClick={() => handleSaveWaitingList(false)}>
                             <Save className="mr-2 h-4 w-4" />
                             Guardar Lista
                         </Button>
@@ -1212,6 +1223,8 @@ export function RotacionDeportiva() {
 
 
 
+
+    
 
     
 
