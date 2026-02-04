@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
-import { Users, Crown, Plus, Trash2, Swords, Trophy, GripVertical, Newspaper, RefreshCw, Pencil, X as CloseIcon, MoreVertical, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown } from 'lucide-react';
+import { Users, Crown, Plus, Trash2, Swords, Trophy, GripVertical, Newspaper, RefreshCw, Pencil, X as CloseIcon, MoreVertical, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, Save, History, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -435,8 +435,9 @@ export function RotacionDeportiva() {
     }
 
     if (newPlayers.length > 0) {
+        const newPlayerIds = newPlayers.map(p => p.id);
         setPlayers(prev => [...prev, ...newPlayers]);
-        setWaitingListIds(prev => [...prev, ...newPlayers.map(p => p.id)]);
+        setWaitingListIds(prev => [...prev, ...newPlayerIds]);
         toast({
             title: `${newPlayers.length > 1 ? 'Jugadores Añadidos' : 'Jugador Añadido'}`,
             description: `${addedNames.join(', ')} está(n) en la lista de espera.`
@@ -786,7 +787,8 @@ export function RotacionDeportiva() {
     
     // Add any player that is not in any team and not in the waiting list
     restoredPlayers.forEach(p => {
-        if (!restoredWaitingListIds.includes(p.id)) {
+        const isInTeam = teamA.players.some(ap => ap.id === p.id) || teamB.players.some(bp => bp.id === p.id) || (championsTeam && championsTeam.players.some(cp => cp.id === p.id));
+        if (!isInTeam && !restoredWaitingListIds.includes(p.id)) {
             restoredWaitingListIds.push(p.id);
         }
     });
@@ -942,6 +944,24 @@ export function RotacionDeportiva() {
                     <Button onClick={handleAddPlayer} className="bg-sky-600 hover:bg-sky-700 text-white">Añadir</Button>
                   </div>
               </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-sky-400"><ListChecks /> Acciones de Lista</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700" onClick={handleSaveWaitingList}>
+                            <Save className="mr-2 h-4 w-4" />
+                            Guardar Lista
+                        </Button>
+                        <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700" onClick={handleRestoreWaitingList}>
+                            <History className="mr-2 h-4 w-4" />
+                            Restaurar Lista
+                        </Button>
+                    </div>
+                </CardContent>
             </Card>
 
             <Card className="bg-slate-800 border-slate-700">
@@ -1170,17 +1190,9 @@ export function RotacionDeportiva() {
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
-                                            <div className="flex flex-col-reverse sm:flex-row gap-2">
-                                              <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700" onClick={handleSaveWaitingList}>
-                                                  Guardar Lista
-                                              </Button>
-                                              <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700" onClick={handleRestoreWaitingList}>
-                                                  Restaurar Lista
-                                              </Button>
-                                              <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
-                                                  Cerrar
-                                              </Button>
-                                            </div>
+                                            <Button type="button" variant="secondary" onClick={() => setIsSummaryOpen(false)}>
+                                                Cerrar
+                                            </Button>
                                           </DialogFooter>
                                       </DialogContent>
                                   </Dialog>
