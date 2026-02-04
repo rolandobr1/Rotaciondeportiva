@@ -164,7 +164,7 @@ const updatePlayerStats = (players: Player[], winningTeam: Team, losingTeam: Tea
       return {
         ...p,
         wins: newWins,
-        consecutiveWins: (p.consecutiveWins || 0) + 1,
+        consecutiveWins: p.consecutiveWins + 1,
         winRate: newWins / (newWins + p.losses),
       };
     }
@@ -960,7 +960,7 @@ export function RotacionDeportiva() {
         <header className="text-center mb-8">
             <h1 className="font-bold text-3xl sm:text-4xl text-sky-400 flex items-center justify-center gap-4 whitespace-nowrap">
                 <img src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" className="h-8 w-8 sm:h-10 md:h-12"/>
-                Rotación Deportiva
+                Rotación Deportiva V2.0
             </h1>
             <p className="text-slate-400 mt-2">Gestión de equipos para partidos amistosos</p>
         </header>
