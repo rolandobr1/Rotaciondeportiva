@@ -1,60 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 222 47% 11%; /* slate-900 */
-    --foreground: 220 29% 96%; /* slate-100 */
-    --card: 222 39% 20%; /* slate-800 */
-    --card-foreground: 220 29% 96%; /* slate-100 */
-    --popover: 222 39% 20%; /* slate-800 */
-    --popover-foreground: 220 29% 96%; /* slate-100 */
-    --primary: 204 98% 39%; /* sky-600 */
-    --primary-foreground: 0 0% 100%; /* white */
-    --secondary: 220 26% 27%; /* slate-700 */
-    --secondary-foreground: 220 29% 96%; /* slate-100 */
-    --muted: 220 20% 35%; /* slate-600 */
-    --muted-foreground: 220 13% 69%; /* slate-400 */
-    --accent: 38 92% 51%; /* amber-500 */
-    --accent-foreground: 222 47% 11%; /* slate-900 */
-    --destructive: 0 84% 60%; /* red-500 */
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 35%; /* slate-600 */
-    --input: 220 26% 27%; /* slate-700 */
-    --ring: 203 92% 60%; /* sky-400 */
-    --radius: 0.5rem;
-  }
- 
-  .dark {
-    --background: 222 47% 11%; /* slate-900 */
-    --foreground: 220 29% 96%; /* slate-100 */
-    --card: 222 39% 20%; /* slate-800 */
-    --card-foreground: 220 29% 96%; /* slate-100 */
-    --popover: 222 39% 20%; /* slate-800 */
-    --popover-foreground: 220 29% 96%; /* slate-100 */
-    --primary: 204 98% 39%; /* sky-600 */
-    --primary-foreground: 0 0% 100%; /* white */
-    --secondary: 220 26% 27%; /* slate-700 */
-    --secondary-foreground: 220 29% 96%; /* slate-100 */
-    --muted: 220 20% 35%; /* slate-600 */
-    --muted-foreground: 220 13% 69%; /* slate-400 */
-    --accent: 38 92% 51%; /* amber-500 */
-    --accent-foreground: 222 47% 11%; /* slate-900 */
-    --destructive: 0 84% 60%; /* red-500 */
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 35%; /* slate-600 */
-    --input: 220 26% 27%; /* slate-700 */
-    --ring: 203 92% 60%; /* sky-400 */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 47 95% 55%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 199 89% 48%;
+    --radius: 0.75rem;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-['Outfit',sans-serif];
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+      radial-gradient(at 50% 0%, hsla(225,39%,30%,0.1) 0, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(339,49%,30%,0.1) 0, transparent 50%);
+    background-attachment: fixed;
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
@@ -66,3 +51,29 @@
     user-select: text;
   }
 }
+
+@layer utilities {
+  .glass {
+    @apply bg-card/60 backdrop-blur-md border border-white/10;
+  }
+  .glass-primary {
+    @apply bg-primary/10 backdrop-blur-md border border-primary/20;
+  }
+  .glass-accent {
+    @apply bg-accent/10 backdrop-blur-md border border-accent/20;
+  }
+  .neon-glow {
+    box-shadow: 0 0 15px -3px hsla(var(--primary) / 0.5);
+  }
+  .neon-glow-accent {
+    box-shadow: 0 0 15px -3px hsla(var(--accent) / 0.5);
+  }
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+}
+
