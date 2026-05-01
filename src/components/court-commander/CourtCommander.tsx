@@ -3,6 +3,19 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Player, Team } from '@/lib/types';
+import { PlayerCard } from './PlayerCard';
+import { TeamColumn } from './TeamColumn';
+
+type AppState = {
+  players: Player[];
+  waitingListIds: string[];
+  teamA: Team;
+  teamB: Team;
+  championsTeam: Team | null;
+  winsToChampion: number;
+  savedWaitingList: string[] | null;
+  savedPlayers: Player[] | null;
+};
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,113 +59,6 @@ const usePrevious = <T,>(value: T): T | undefined => {
   return ref.current;
 };
 
-
-const PlayerCard = ({ player, onRemove, onAssign, isChampion, turn, draggable, onDragStart, onDragEnter, onDragLeave, onDragOver, onDrop, onDragEnd, isDragging, isDraggingOver, onEdit, onMoveInWaitingList, isFirstInList, isLastInList, justMoved }: { player: Player, onRemove?: (id: string) => void, onAssign?: (id: string, team: 'A' | 'B') => void, isChampion?: boolean, turn?: number, draggable?: boolean, onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void, onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void, onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void, onDrop?: (e: React.DragEvent<HTMLDivElement>) => void, onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void, isDragging?: boolean, isDraggingOver?: boolean, onEdit?: (id: string) => void, onMoveInWaitingList?: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void, isFirstInList?: boolean, isLastInList?: boolean, justMoved?: boolean }) => (
-  <div 
-    draggable={draggable}
-    onDragStart={onDragStart}
-    onDragEnter={onDragEnter}
-    onDragLeave={onDragLeave}
-    onDragOver={onDragOver}
-    onDrop={onDrop}
-    onDragEnd={onDragEnd}
-    className={cn(
-    "relative flex items-center justify-between p-3 rounded-lg shadow-sm transition-colors duration-1000 ease-out hover:shadow-md",
-    isChampion ? "bg-amber-500" : justMoved ? "bg-sky-600" : "bg-slate-700",
-    draggable && "cursor-move",
-    isDragging && "opacity-50",
-    isDraggingOver && "ring-2 ring-sky-400"
-  )}>
-    <div className="flex items-center gap-3 overflow-hidden">
-        {draggable && <GripVertical className="h-5 w-5 text-slate-400 shrink-0" />}
-        <div className="overflow-hidden">
-            <div className="flex items-center gap-2">
-                <p className={cn("font-bold truncate", isChampion ? "text-black" : "text-sky-400")}>
-                    {turn && <span className="mr-2 text-slate-400 font-normal">{turn}.</span>}
-                    {player.name}
-                </p>
-                {onEdit && (
-                    <Button size="icon" variant="ghost" className={cn("h-6 w-6 shrink-0 p-0", isChampion ? "text-black hover:text-slate-700" : "text-slate-400 hover:text-white")} onClick={() => onEdit(player.id)}>
-                        <Pencil className="h-3 w-3" />
-                    </Button>
-                )}
-            </div>
-            <p className={cn("text-xs truncate", isChampion ? "text-slate-800" : "text-slate-400")}>
-                V/D: {player.wins}/{player.losses} | Tasa de Victorias: {(player.winRate * 100).toFixed(0)}% | Racha: <span className={cn("font-bold", player.consecutiveWins > 0 ? (isChampion ? 'text-white' : 'text-amber-400') : '')}>{player.consecutiveWins}</span>
-            </p>
-        </div>
-    </div>
-    <div className="flex items-center gap-1 flex-shrink-0">
-      {onAssign && (
-        <div className="flex items-center">
-          <Button size="icon" variant="ghost" className="h-7 w-7 font-bold text-sky-400 hover:bg-sky-600 hover:text-white" onClick={() => onAssign(player.id, 'A')}>A</Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7 font-bold text-amber-400 hover:bg-amber-500 hover:text-white" onClick={() => onAssign(player.id, 'B')}>B</Button>
-        </div>
-      )}
-      {onMoveInWaitingList && (
-        <div className="flex items-center">
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onMoveInWaitingList(player.id, 'up')} disabled={isFirstInList}>
-                <ChevronUp className="h-4 w-4" />
-            </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onMoveInWaitingList(player.id, 'down')} disabled={isLastInList}>
-                <ChevronDown className="h-4 w-4" />
-            </Button>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <MoreVertical className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white">
-                    <DropdownMenuItem onClick={() => onMoveInWaitingList(player.id, 'top')} className="focus:bg-slate-700 focus:text-white">
-                        <ChevronsUp className="mr-2 h-4 w-4" />
-                        <span>Enviar al principio</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onMoveInWaitingList(player.id, 'bottom')} className="focus:bg-slate-700 focus:text-white">
-                        <ChevronsDown className="mr-2 h-4 w-4" />
-                        <span>Enviar al final</span>
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
-      )}
-
-      {onRemove && (
-        <Button size="icon" variant="ghost" className={cn("h-7 w-7", isChampion ? "text-black hover:text-red-900" : "text-slate-400 hover:text-red-500")} onClick={() => onRemove(player.id)}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      )}
-    </div>
-  </div>
-);
-
-const TeamColumn = ({ team, onRemovePlayer, onEditPlayer }: { team: Team, onRemovePlayer: (playerId: string) => void, onEditPlayer: (playerId: string) => void }) => {
-    const avgWinRate = useMemo(() => {
-        if (team.players.length === 0) return 0;
-        const totalWinRate = team.players.reduce((sum, p) => sum + p.winRate, 0);
-        return totalWinRate / team.players.length;
-    }, [team.players]);
-
-    return (
-        <Card className="flex-1 min-w-[280px] bg-slate-800/80 border-slate-700">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl text-sky-400">
-                    <div className="flex items-center gap-3">
-                        <Swords /> {team.name}
-                    </div>
-                </CardTitle>
-                <CardDescription className="text-slate-400">Tasa de Vic. Prom.: {(avgWinRate * 100).toFixed(0)}%</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-                {team.players.length > 0 ? (
-                    team.players.map(p => <PlayerCard key={p.id} player={p} onRemove={() => onRemovePlayer(p.id)} onEdit={onEditPlayer} />)
-                ) : (
-                    <div className="text-center text-slate-500 py-8">Añade jugadores a este equipo</div>
-                )}
-            </CardContent>
-        </Card>
-    );
-};
 
 // Helper function to update player stats after a match
 const updatePlayerStats = (players: Player[], winningTeam: Team, losingTeam: Team, championsTeam?: Team | null): Player[] => {
@@ -213,9 +119,48 @@ export function RotacionDeportiva() {
   const prevWaitingListIds = usePrevious(waitingListIds);
   const prevWaitingListLength = usePrevious(waitingListIds.length);
 
+  const [undoStack, setUndoStack] = useState<AppState[]>([]);
+
+  const saveStateForUndo = useCallback(() => {
+    const currentState: AppState = {
+      players,
+      waitingListIds,
+      teamA,
+      teamB,
+      championsTeam,
+      winsToChampion,
+      savedWaitingList,
+      savedPlayers,
+    };
+    setUndoStack(prev => [...prev.slice(-9), currentState]); // Mantener máximo 10 estados
+  }, [players, waitingListIds, teamA, teamB, championsTeam, winsToChampion, savedWaitingList, savedPlayers]);
+
+  const updateFromState = useCallback((state: AppState) => {
+    setPlayers(state.players);
+    setWaitingListIds(state.waitingListIds);
+    setTeamA(state.teamA);
+    setTeamB(state.teamB);
+    setChampionsTeam(state.championsTeam);
+    setWinsToChampion(state.winsToChampion);
+    setSavedWaitingList(state.savedWaitingList);
+    setSavedPlayers(state.savedPlayers);
+  }, []);
+
   const { toast } = useToast();
 
+  const handleUndo = useCallback(() => {
+    if (undoStack.length > 0) {
+      const lastState = undoStack[undoStack.length - 1];
+      updateFromState(lastState);
+      setUndoStack(prev => prev.slice(0, -1));
+      toast({ title: "Acción Deshecha", description: "Se ha revertido la última acción." });
+    } else {
+      toast({ variant: 'destructive', title: "No hay acciones para deshacer" });
+    }
+  }, [undoStack, updateFromState, toast]);
+
   const STORAGE_KEYS = useMemo(() => ({
+
     PLAYERS: 'rotacionDeportiva.players_v2',
     WAITING_LIST: 'rotacionDeportiva.waitingListIds_v2',
     TEAM_A: 'rotacionDeportiva.teamA_v2',
@@ -407,6 +352,7 @@ export function RotacionDeportiva() {
   };
 
   const handleAddPlayer = () => {
+    saveStateForUndo();
     // Split by newline, trim, and remove empty strings.
     const names = newPlayerName.split('\n').map(name => name.trim()).filter(Boolean);
 
@@ -476,6 +422,7 @@ export function RotacionDeportiva() {
   };
 
   const handleRemovePlayer = (id: string) => {
+    saveStateForUndo();
     const playerToRemove = players.find(p => p.id === id);
     if (!playerToRemove) return;
     
@@ -504,6 +451,7 @@ export function RotacionDeportiva() {
   };
   
     const handleAssignPlayerToTeam = (playerId: string, team: 'A' | 'B') => {
+    saveStateForUndo();
         const player = players.find(p => p.id === playerId);
         if (!player) return;
 
@@ -543,6 +491,7 @@ export function RotacionDeportiva() {
     };
 
   const handleRemoveFromTeam = (playerId: string) => {
+    saveStateForUndo();
     const playerToRemove = players.find(p => p.id === playerId);
     if (!playerToRemove) return;
 
@@ -671,6 +620,7 @@ export function RotacionDeportiva() {
   };
   
   const handleRecordWin = (winner: 'A' | 'B') => {
+    saveStateForUndo();
       const winsNeeded = Number(winsToChampion);
       if (isNaN(winsNeeded) || winsNeeded < 1) {
           toast({ variant: "destructive", title: "Número inválido", description: "Las victorias para ser campeón deben ser un número mayor a 0." });
@@ -1181,6 +1131,10 @@ export function RotacionDeportiva() {
                                               Finalizar el Día y Ver Resumen
                                           </Button>
                                       </DialogTrigger>
+                                      <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white" onClick={handleUndo} disabled={undoStack.length === 0}>
+                                          <History className="mr-2 h-4 w-4"/>
+                                          Deshacer Última Acción
+                                      </Button>
                                        <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
                                           <DialogHeader>
                                               <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>

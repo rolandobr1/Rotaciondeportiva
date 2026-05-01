@@ -1,0 +1,131 @@
+"use client";
+
+import React from 'react';
+import { Player } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { GripVertical, Pencil, Trash2, ChevronUp, ChevronDown, MoreVertical, ChevronsUp, ChevronsDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+interface PlayerCardProps {
+  player: Player;
+  onRemove?: (id: string) => void;
+  onAssign?: (id: string, team: 'A' | 'B') => void;
+  isChampion?: boolean;
+  turn?: number;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDrop?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void;
+  isDragging?: boolean;
+  isDraggingOver?: boolean;
+  onEdit?: (id: string) => void;
+  onMoveInWaitingList?: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void;
+  isFirstInList?: boolean;
+  isLastInList?: boolean;
+  justMoved?: boolean;
+}
+
+export const PlayerCard = React.memo(({
+  player,
+  onRemove,
+  onAssign,
+  isChampion,
+  turn,
+  draggable,
+  onDragStart,
+  onDragEnter,
+  onDragLeave,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isDragging,
+  isDraggingOver,
+  onEdit,
+  onMoveInWaitingList,
+  isFirstInList,
+  isLastInList,
+  justMoved
+}: PlayerCardProps) => (
+  <div
+    draggable={draggable}
+    onDragStart={onDragStart}
+    onDragEnter={onDragEnter}
+    onDragLeave={onDragLeave}
+    onDragOver={onDragOver}
+    onDrop={onDrop}
+    onDragEnd={onDragEnd}
+    className={cn(
+      "relative flex items-center justify-between p-3 rounded-lg shadow-sm transition-colors duration-1000 ease-out hover:shadow-md",
+      isChampion ? "bg-amber-500" : justMoved ? "bg-sky-600" : "bg-slate-700",
+      draggable && "cursor-move",
+      isDragging && "opacity-50",
+      isDraggingOver && "ring-2 ring-sky-400"
+    )}
+    aria-label={`Jugador ${player.name}`}
+  >
+    <div className="flex items-center gap-3 overflow-hidden">
+      {draggable && <GripVertical className="h-5 w-5 text-slate-400 shrink-0" />}
+      <div className="overflow-hidden">
+        <div className="flex items-center gap-2">
+          <p className={cn("font-bold sm:truncate", isChampion ? "text-black" : "text-sky-400")}>
+            {turn && <span className="mr-2 text-slate-400 font-normal">{turn}.</span>}
+            {player.name}
+          </p>
+          {onEdit && (
+            <Button size="icon" variant="ghost" className={cn("h-6 w-6 shrink-0 p-0", isChampion ? "text-black hover:text-slate-700" : "text-slate-400 hover:text-white")} onClick={() => onEdit(player.id)} aria-label={`Editar ${player.name}`}>
+              <Pencil className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+        <p className={cn("text-xs sm:truncate", isChampion ? "text-slate-800" : "text-slate-400")}>
+          V/D: {player.wins}/{player.losses} | Tasa de Victorias: {(player.winRate * 100).toFixed(0)}% | Racha: <span className={cn("font-bold", player.consecutiveWins > 0 ? (isChampion ? 'text-white' : 'text-amber-400') : '')}>{player.consecutiveWins}</span>
+        </p>
+      </div>
+    </div>
+    <div className="flex items-center gap-1 flex-shrink-0">
+      {onAssign && (
+        <div className="flex items-center">
+          <Button size="icon" variant="ghost" className="h-7 w-7 font-bold text-sky-400 hover:bg-sky-600 hover:text-white" onClick={() => onAssign(player.id, 'A')} aria-label={`Asignar ${player.name} al Equipo A`}>A</Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7 font-bold text-amber-400 hover:bg-amber-500 hover:text-white" onClick={() => onAssign(player.id, 'B')} aria-label={`Asignar ${player.name} al Equipo B`}>B</Button>
+        </div>
+      )}
+      {onMoveInWaitingList && (
+        <div className="flex items-center">
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onMoveInWaitingList(player.id, 'up')} disabled={isFirstInList} aria-label={`Mover ${player.name} arriba`}>
+            <ChevronUp className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onMoveInWaitingList(player.id, 'down')} disabled={isLastInList} aria-label={`Mover ${player.name} abajo`}>
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Opciones de movimiento para ${player.name}`}>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white">
+              <DropdownMenuItem onClick={() => onMoveInWaitingList(player.id, 'top')} className="focus:bg-slate-700 focus:text-white">
+                <ChevronsUp className="mr-2 h-4 w-4" />
+                <span>Enviar al principio</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onMoveInWaitingList(player.id, 'bottom')} className="focus:bg-slate-700 focus:text-white">
+                <ChevronsDown className="mr-2 h-4 w-4" />
+                <span>Enviar al final</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
+      {onRemove && (
+        <Button size="icon" variant="ghost" className={cn("h-7 w-7", isChampion ? "text-black hover:text-red-900" : "text-slate-400 hover:text-red-500")} onClick={() => onRemove(player.id)} aria-label={`Eliminar ${player.name}`}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  </div>
+));
