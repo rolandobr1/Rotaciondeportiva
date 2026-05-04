@@ -33,6 +33,10 @@
   * {
     @apply border-border;
   }
+  html {
+    min-height: 100%;
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground font-['Outfit',sans-serif];
     background-image: 
@@ -40,6 +44,8 @@
       radial-gradient(at 50% 0%, hsla(225,39%,30%,0.1) 0, transparent 50%),
       radial-gradient(at 100% 0%, hsla(339,49%,30%,0.1) 0, transparent 50%);
     background-attachment: fixed;
+    min-height: 100%;
+    overflow-x: hidden;
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
