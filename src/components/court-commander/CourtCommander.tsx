@@ -105,6 +105,16 @@ export function RotacionDeportiva() {
   const [championRule, setChampionRule] = useState(false);
   const [winsToChampion, setWinsToChampion] = useState<number | string>(2);
   const [isConfirmDisableChampionsOpen, setIsConfirmDisableChampionsOpen] = useState(false);
+  const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
+  const [playerToRemove, setPlayerToRemove] = useState<Player | null>(null);
+  const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
+  const [playerToMove, setPlayerToMove] = useState<{ player: Player; direction: 'top' | 'bottom' } | null>(null);
+  const [isConfirmMoveOpen, setIsConfirmMoveOpen] = useState(false);
+
+  const [pendingAssignment, setPendingAssignment] = useState<{ player: Player; team: 'A' | 'B' } | null>(null);
+  const [isConfirmAssignOpen, setIsConfirmAssignOpen] = useState(false);
+  const [pendingSwapTarget, setPendingSwapTarget] = useState<Player | null>(null);
+  const [isConfirmSwapOpen, setIsConfirmSwapOpen] = useState(false);
 
   const [draggedPlayerId, setDraggedPlayerId] = useState<string | null>(null);
   const [dragOverPlayerId, setDragOverPlayerId] = useState<string | null>(null);
@@ -124,6 +134,25 @@ export function RotacionDeportiva() {
   const prevWaitingListLength = usePrevious(waitingListIds.length);
 
   const [undoStack, setUndoStack] = useState<AppState[]>([]);
+  const [matchStatus, setMatchStatus] = useState<{ type: 'win' | 'champion' | 'duel' | 'rest' | 'none'; teamName: string; message: string } | null>(null);
+  const [lastWinner, setLastWinner] = useState<'A' | 'B' | null>(null);
+  const [consecutiveWinCount, setConsecutiveWinCount] = useState(0);
+  const [winOverlay, setWinOverlay] = useState<{ teamName: string; type: 'win' | 'streak' | 'champion' } | null>(null);
+  const winOverlayTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!matchStatus) return;
+    const timer = setTimeout(() => setMatchStatus(null), 8000);
+    return () => clearTimeout(timer);
+  }, [matchStatus]);
+
+  useEffect(() => {
+    return () => {
+      if (winOverlayTimerRef.current !== null) {
+        window.clearTimeout(winOverlayTimerRef.current);
+      }
+    };
+  }, []);
 
   const saveStateForUndo = useCallback(() => {
     const currentState: AppState = {
@@ -316,6 +345,10 @@ export function RotacionDeportiva() {
   };
 
   const handleResetDay = () => {
+    setIsConfirmResetOpen(true);
+  };
+
+  const handleConfirmResetDay = () => {
     setPlayers([]);
     setWaitingListIds([]);
     setTeamA({ name: 'Equipo A', players: [] });
@@ -328,6 +361,7 @@ export function RotacionDeportiva() {
     Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
     
     setIsSummaryOpen(false); 
+    setIsConfirmResetOpen(false);
     
     toast({
         title: "Día Finalizado",
@@ -410,73 +444,91 @@ export function RotacionDeportiva() {
   };
 
   const handleRemovePlayer = (id: string) => {
-    saveStateForUndo();
     const playerToRemove = players.find(p => p.id === id);
     if (!playerToRemove) return;
-    
-    const confirmAndRemove = () => {
-        setPlayers(p => p.filter(player => player.id !== id));
-        setWaitingListIds(ids => ids.filter(playerId => playerId !== id));
-        
-        const removePlayerFromTeam = (team: Team, defaultName: string) => {
-            const newPlayers = team.players.filter(p => p.id !== id);
-            return { ...team, players: newPlayers, name: deriveTeamName(newPlayers, defaultName) };
-        };
-
-        setTeamA(t => removePlayerFromTeam(t, 'Equipo A'));
-        setTeamB(t => removePlayerFromTeam(t, 'Equipo B'));
-
-        setChampionsTeam(ct => {
-            if (!ct) return null;
-            const newPlayers = ct.players.filter(p => p.id !== id);
-            return newPlayers.length > 0 ? { ...ct, players: newPlayers } : null;
-        });
-
-        toast({ title: 'Jugador Eliminado', description: `${playerToRemove.name} ha sido eliminado de la aplicación.` });
-    };
-
-    confirmAndRemove();
+    setPlayerToRemove(playerToRemove);
+    setIsConfirmRemoveOpen(true);
   };
-  
-    const handleAssignPlayerToTeam = (playerId: string, team: 'A' | 'B') => {
+
+  const handleConfirmRemovePlayer = () => {
+    if (!playerToRemove) return;
     saveStateForUndo();
-        const player = players.find(p => p.id === playerId);
-        if (!player) return;
-
-        const isTeamA = team === 'A';
-        const targetTeam = isTeamA ? teamA : teamB;
-        const setTargetTeam = isTeamA ? setTeamA : setTeamB;
-        const defaultName = isTeamA ? 'Equipo A' : 'Equipo B';
-
-        if (targetTeam.players.length >= 5) {
-          toast({
-            variant: "destructive",
-            title: "Equipo Lleno",
-            description: `${targetTeam.name} ya tiene 5 jugadores.`
-          });
-          return;
-        }
-        
-        if (teamA.players.some(p => p.id === playerId) || teamB.players.some(p => p.id === playerId)) {
-            return;
-        }
-
-        setWaitingListIds(ids => ids.filter(id => id !== playerId));
-        
-        setTargetTeam(currentTeam => {
-            const newPlayers = [...currentTeam.players, player];
-            return {
-                ...currentTeam,
-                players: newPlayers,
-                name: deriveTeamName(newPlayers, defaultName)
-            };
-        });
-
-        toast({
-          title: "Jugador Asignado",
-          description: `${player.name} ha sido añadido al Equipo ${team}.`
-        });
+    setPlayers(p => p.filter(player => player.id !== playerToRemove.id));
+    setWaitingListIds(ids => ids.filter(playerId => playerId !== playerToRemove.id));
+    
+    const removePlayerFromTeam = (team: Team, defaultName: string) => {
+        const newPlayers = team.players.filter(p => p.id !== playerToRemove.id);
+        return { ...team, players: newPlayers, name: deriveTeamName(newPlayers, defaultName) };
     };
+
+    setTeamA(t => removePlayerFromTeam(t, 'Equipo A'));
+    setTeamB(t => removePlayerFromTeam(t, 'Equipo B'));
+
+    setChampionsTeam(ct => {
+        if (!ct) return null;
+        const newPlayers = ct.players.filter(p => p.id !== playerToRemove.id);
+        return newPlayers.length > 0 ? { ...ct, players: newPlayers } : null;
+    });
+
+    toast({ title: 'Jugador Eliminado', description: `${playerToRemove.name} ha sido eliminado de la aplicación.` });
+    setIsConfirmRemoveOpen(false);
+    setPlayerToRemove(null);
+  };
+
+  const handleRequestAssignPlayerToTeam = (playerId: string, team: 'A' | 'B') => {
+    const player = players.find(p => p.id === playerId);
+    if (!player) return;
+
+    setPendingAssignment({ player, team });
+    setIsConfirmAssignOpen(true);
+  };
+
+  const handleConfirmAssignPlayerToTeam = () => {
+    if (!pendingAssignment) return;
+    handleAssignPlayerToTeam(pendingAssignment.player.id, pendingAssignment.team);
+    setPendingAssignment(null);
+    setIsConfirmAssignOpen(false);
+  };
+
+  const handleAssignPlayerToTeam = (playerId: string, team: 'A' | 'B') => {
+    saveStateForUndo();
+    const player = players.find(p => p.id === playerId);
+    if (!player) return;
+
+    const isTeamA = team === 'A';
+    const targetTeam = isTeamA ? teamA : teamB;
+    const setTargetTeam = isTeamA ? setTeamA : setTeamB;
+    const defaultName = isTeamA ? 'Equipo A' : 'Equipo B';
+
+    if (targetTeam.players.length >= 5) {
+      toast({
+        variant: "destructive",
+        title: "Equipo Lleno",
+        description: `${targetTeam.name} ya tiene 5 jugadores.`
+      });
+      return;
+    }
+    
+    if (teamA.players.some(p => p.id === playerId) || teamB.players.some(p => p.id === playerId)) {
+        return;
+    }
+
+    setWaitingListIds(ids => ids.filter(id => id !== playerId));
+    
+    setTargetTeam(currentTeam => {
+        const newPlayers = [...currentTeam.players, player];
+        return {
+            ...currentTeam,
+            players: newPlayers,
+            name: deriveTeamName(newPlayers, defaultName)
+        };
+    });
+
+    toast({
+      title: "Jugador Asignado",
+      description: `${player.name} ha sido añadido al Equipo ${team}.`
+    });
+  };
 
   const handleRemoveFromTeam = (playerId: string) => {
     saveStateForUndo();
@@ -641,17 +693,27 @@ export function RotacionDeportiva() {
       const playerMap = new Map(allPlayersAfterStats.map(p => [p.id, p]));
   
       const winningTeamWithStats = winningTeamData.players.map(p => playerMap.get(p.id)!);
-  
+      const statusPrefix = winningTeamData.name;
+      const nextConsecutiveCount = lastWinner === winner ? consecutiveWinCount + 1 : 1;
+      const isStreak = nextConsecutiveCount >= 2;
+      setLastWinner(winner);
+      setConsecutiveWinCount(nextConsecutiveCount);
+
+      const showWinOverlay = (type: 'win' | 'streak' | 'champion') => {
+        if (winOverlayTimerRef.current !== null) {
+          window.clearTimeout(winOverlayTimerRef.current);
+        }
+        setWinOverlay({ teamName: winningTeamData.name, type });
+        winOverlayTimerRef.current = window.setTimeout(() => setWinOverlay(null), 1000);
+      };
+
       if (wasChampionMatch) {
-          // A challenger was decided. Now they face the champion.
           const championPlayersWithStats = championsTeam!.players.map(p => playerMap.get(p.id)!).filter(Boolean);
-          
           const isValidChampionTeam = championPlayersWithStats.length === 5;
           
           if (!isValidChampionTeam) {
               toast({ variant: "destructive", title: "Equipo Campeón Inválido", description: "El equipo campeón se disolvió. Volviendo a la rotación normal." });
               setChampionsTeam(null);
-              // Fall through to standard rotation logic by setting wasChampionMatch to false
           } else {
               setTeamA({ name: deriveTeamName(championPlayersWithStats, championsTeam!.name), players: championPlayersWithStats });
               setTeamB({ name: deriveTeamName(winningTeamWithStats, winningTeamData.name), players: winningTeamWithStats });
@@ -659,6 +721,7 @@ export function RotacionDeportiva() {
               const loserIds = losingTeamData.players.map(p => p.id);
               setWaitingListIds(currentIds => [...currentIds, ...loserIds]);
               setPlayers(allPlayersAfterStats);
+              setMatchStatus({ type: 'duel', teamName: winningTeamData.name, message: `${statusPrefix} ganó el duelo y ahora reta al campeón.` });
               toast({ title: "¡Duelo de Campeones!", description: `${championsTeam!.name} vs. ${winningTeamData.name}` });
               return;
           }
@@ -667,9 +730,10 @@ export function RotacionDeportiva() {
       const teamHasReachedChampionStatus = championRule && winningTeamWithStats.every(p => p.consecutiveWins >= winsNeeded);
   
       if (teamHasReachedChampionStatus) {
-          // New champions crowned
           toast({ title: "¡Nuevos Campeones!", description: `${winningTeamData.name} ahora son campeones y descansarán.` });
           setChampionsTeam({ name: winningTeamData.name, players: winningTeamWithStats });
+          setMatchStatus({ type: 'champion', teamName: winningTeamData.name, message: `${statusPrefix} se ha convertido en campeón y pasa a modo descanso.` });
+          showWinOverlay('champion');
           
           const loserIds = losingTeamData.players.map(p => p.id);
           const newWaitingList = [...waitingListIds, ...loserIds];
@@ -688,10 +752,11 @@ export function RotacionDeportiva() {
               toast({ title: "Partido Interino", description: "Se ha formado un nuevo partido para decidir el próximo retador." });
           }
       } else {
-          // Standard rotation
           const loserIds = losingTeamData.players.map(p => p.id);
           const newWaitingList = [...waitingListIds, ...loserIds];
           
+          setMatchStatus({ type: 'win', teamName: winningTeamData.name, message: `${statusPrefix} ganó y avanza en la rotación.` });
+          showWinOverlay(isStreak ? 'streak' : 'win');
           if (newWaitingList.length < 5) {
               toast({ variant: 'destructive', title: "No hay suficientes retadores", description: "El equipo ganador se queda en la cancha, pero no hay suficientes jugadores para formar un equipo retador." });
               const winnerTeamData = { name: winningTeamData.name, players: winningTeamWithStats };
@@ -719,30 +784,49 @@ export function RotacionDeportiva() {
   };
   
   const handleMoveInWaitingList = (playerId: string, direction: 'up' | 'down' | 'top' | 'bottom') => {
-    setWaitingListIds(currentIds => {
-        const index = currentIds.indexOf(playerId);
-        if (index === -1) return currentIds;
+    if (direction === 'top' || direction === 'bottom') {
+      const player = players.find(p => p.id === playerId);
+      if (player) {
+        setPlayerToMove({ player, direction });
+        setIsConfirmMoveOpen(true);
+      }
+    } else {
+      setWaitingListIds(currentIds => {
+          const index = currentIds.indexOf(playerId);
+          if (index === -1) return currentIds;
 
-        if (direction === 'up') {
-            if (index === 0) return currentIds;
-            const newIds = [...currentIds];
-            [newIds[index - 1], newIds[index]] = [newIds[index], newIds[index - 1]];
-            return newIds;
-        }
-        if (direction === 'down') {
-            if (index === currentIds.length - 1) return currentIds;
-            const newIds = [...currentIds];
-            [newIds[index + 1], newIds[index]] = [newIds[index], newIds[index + 1]];
-            return newIds;
-        }
-        if (direction === 'top') {
-            return [playerId, ...currentIds.filter(id => id !== playerId)];
-        }
-        if (direction === 'bottom') {
-            return [...currentIds.filter(id => id !== playerId), playerId];
-        }
-        return currentIds;
+          if (direction === 'up') {
+              if (index === 0) return currentIds;
+              const newIds = [...currentIds];
+              [newIds[index - 1], newIds[index]] = [newIds[index], newIds[index - 1]];
+              return newIds;
+          }
+          if (direction === 'down') {
+              if (index === currentIds.length - 1) return currentIds;
+              const newIds = [...currentIds];
+              [newIds[index + 1], newIds[index]] = [newIds[index], newIds[index + 1]];
+              return newIds;
+          }
+          return currentIds;
+      });
+    }
+  };
+
+  const handleConfirmMoveInWaitingList = () => {
+    if (!playerToMove) return;
+    const { player, direction } = playerToMove;
+    setWaitingListIds(currentIds => {
+      if (direction === 'top') {
+        return [player.id, ...currentIds.filter(id => id !== player.id)];
+      }
+      if (direction === 'bottom') {
+        return [...currentIds.filter(id => id !== player.id), player.id];
+      }
+      return currentIds;
     });
+    toast({ title: "Jugador Movido", description: `${player.name} movido al ${direction === 'top' ? 'principio' : 'final'} de la lista.` });
+    setIsConfirmMoveOpen(false);
+    setPlayerToMove(null);
   };
 
   const handleReturnChampionToWaitingList = () => {
@@ -843,14 +927,25 @@ export function RotacionDeportiva() {
 
   const handleConfirmSwap = (targetPlayerId: string) => {
       if (!swapSource) return;
+      const targetTeam = swapSource.team === 'A' ? teamB : teamA;
+      const targetPlayer = targetTeam.players.find(p => p.id === targetPlayerId);
+      if (!targetPlayer) return;
+      setPendingSwapTarget(targetPlayer);
+      setIsConfirmSwapOpen(true);
+      setIsSwapDialogOpen(false);
+  };
+
+  const handleFinalizeSwap = () => {
+      if (!swapSource || !pendingSwapTarget) return;
       const sourceTeam = swapSource.team === 'A' ? teamA : teamB;
       const targetTeam = swapSource.team === 'A' ? teamB : teamA;
       const sourcePlayer = sourceTeam.players.find(p => p.id === swapSource.playerId);
-      const targetPlayer = targetTeam.players.find(p => p.id === targetPlayerId);
+      const targetPlayer = pendingSwapTarget;
 
-      if (!sourcePlayer || !targetPlayer) {
+      if (!sourcePlayer) {
           setSwapSource(null);
-          setIsSwapDialogOpen(false);
+          setPendingSwapTarget(null);
+          setIsConfirmSwapOpen(false);
           return;
       }
 
@@ -872,7 +967,8 @@ export function RotacionDeportiva() {
       });
 
       setSwapSource(null);
-      setIsSwapDialogOpen(false);
+      setPendingSwapTarget(null);
+      setIsConfirmSwapOpen(false);
   };
 
   const handleCancelSwap = () => {
@@ -895,6 +991,41 @@ export function RotacionDeportiva() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100 px-3 py-4 sm:px-5 sm:py-6">
       <main className="w-full max-w-[1800px] min-w-0 mx-auto pb-28">
+        {winOverlay && (
+          <div className={cn(
+            "fixed inset-0 z-[1000] flex items-center justify-center px-4 py-6 text-center transition-opacity duration-300",
+            winOverlay.type === 'champion' || winOverlay.type === 'streak' ? "bg-amber-950/90" : "bg-slate-950/90"
+          )}>
+            <div className={cn(
+              "rounded-[2rem] border p-8 shadow-2xl shadow-black/40 max-w-xl w-full transform-gpu transition-all duration-500 ease-out",
+              winOverlay.type === 'champion'
+                ? "bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-200 border-amber-300 text-slate-950 shadow-[0_0_40px_rgba(245,158,11,0.45)] scale-[1.03]"
+                : winOverlay.type === 'streak'
+                ? "bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-200 border-amber-300 text-slate-950 shadow-[0_0_32px_rgba(245,158,11,0.35)] scale-[1.02]"
+                : "bg-slate-900/95 border-slate-700 text-white backdrop-blur-sm"
+            )}>
+              <div className="flex flex-col items-center gap-4">
+                <div className={cn(
+                  "rounded-full p-4 shadow-2xl shadow-black/30",
+                  winOverlay.type === 'champion'
+                    ? "bg-amber-500 text-slate-950 animate-pulse"
+                    : winOverlay.type === 'streak'
+                    ? "bg-amber-500 text-slate-950 animate-pulse"
+                    : "bg-slate-950 text-amber-400 animate-bounce"
+                )}>
+                  <Trophy className={cn("h-10 w-10", winOverlay.type === 'champion' ? "text-amber-900" : "text-amber-400")} />
+                </div>
+                <p className={cn("text-4xl font-black tracking-tight", winOverlay.type === 'champion' ? "text-amber-950" : "text-white")}>¡{winOverlay.teamName} {winOverlay.type === 'champion' ? 'es campeón' : 'ganó'}!</p>
+                {winOverlay.type === 'streak' && (
+                  <p className="mt-2 text-sm uppercase tracking-[0.3em] text-amber-900">Racha de victorias</p>
+                )}
+                {winOverlay.type === 'champion' && (
+                  <p className="mt-2 text-sm uppercase tracking-[0.3em] text-slate-950">Coronados con estilo</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         <AlertDialog open={isConfirmDisableChampionsOpen} onOpenChange={setIsConfirmDisableChampionsOpen}>
             <AlertDialogContent className="bg-slate-800 border-slate-700">
                 <AlertDialogHeader>
@@ -906,6 +1037,90 @@ export function RotacionDeportiva() {
                 <AlertDialogFooter>
                     <AlertDialogCancel className="border-slate-600 hover:bg-slate-700" onClick={() => setIsConfirmDisableChampionsOpen(false)}>Cancelar</AlertDialogCancel>
                     <AlertDialogAction onClick={handleConfirmDisableChampionRule} className="bg-destructive hover:bg-red-700">Sí, desactivar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={isConfirmResetOpen} onOpenChange={setIsConfirmResetOpen}>
+            <AlertDialogContent className="bg-slate-800 border-slate-700">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-red-400">¿Reiniciar Día?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-slate-300">
+                        Esta acción borrará todos los jugadores, estadísticas y datos guardados. No se puede deshacer. ¿Estás seguro?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel className="border-slate-600 hover:bg-slate-700" onClick={() => setIsConfirmResetOpen(false)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmResetDay} className="bg-destructive hover:bg-red-700">Sí, reiniciar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={isConfirmRemoveOpen} onOpenChange={setIsConfirmRemoveOpen}>
+            <AlertDialogContent className="bg-slate-800 border-slate-700">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-red-400">¿Eliminar Jugador?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-slate-300">
+                        ¿Estás seguro de que quieres eliminar a {playerToRemove?.name}? Se perderán todas sus estadísticas y no se puede deshacer.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel className="border-slate-600 hover:bg-slate-700" onClick={() => { setIsConfirmRemoveOpen(false); setPlayerToRemove(null); }}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmRemovePlayer} className="bg-destructive hover:bg-red-700">Sí, eliminar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={isConfirmMoveOpen} onOpenChange={setIsConfirmMoveOpen}>
+            <AlertDialogContent className="bg-slate-800 border-slate-700">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-amber-400">¿Mover Jugador?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-slate-300">
+                        ¿Mover a {playerToMove?.player.name} al {playerToMove?.direction === 'top' ? 'principio' : 'final'} de la lista de espera?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel className="border-slate-600 hover:bg-slate-700" onClick={() => { setIsConfirmMoveOpen(false); setPlayerToMove(null); }}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmMoveInWaitingList} className="bg-amber-600 hover:bg-amber-700">Sí, mover</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={isConfirmAssignOpen} onOpenChange={(open) => {
+            if (!open) setPendingAssignment(null);
+            setIsConfirmAssignOpen(open);
+        }}>
+            <AlertDialogContent className="bg-slate-800 border-slate-700">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-sky-400">¿Asignar Jugador?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-slate-300">
+                        ¿Asignar a {pendingAssignment?.player.name} al Equipo {pendingAssignment?.team}?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel className="border-slate-600 hover:bg-slate-700" onClick={() => setIsConfirmAssignOpen(false)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmAssignPlayerToTeam} className="bg-sky-600 hover:bg-sky-700">Sí, asignar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={isConfirmSwapOpen} onOpenChange={(open) => {
+            if (!open) {
+                setPendingSwapTarget(null);
+                setSwapSource(null);
+            }
+            setIsConfirmSwapOpen(open);
+        }}>
+            <AlertDialogContent className="bg-slate-800 border-slate-700">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-sky-400">¿Confirmar Intercambio?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-slate-300">
+                        ¿Intercambiar a {swapSource?.name} con {pendingSwapTarget?.name}?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel className="border-slate-600 hover:bg-slate-700" onClick={() => { setIsConfirmSwapOpen(false); setPendingSwapTarget(null); setSwapSource(null); }}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleFinalizeSwap} className="bg-sky-600 hover:bg-sky-700">Sí, intercambiar</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
@@ -964,7 +1179,7 @@ export function RotacionDeportiva() {
             </div>
         </header>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(320px,420px)_1fr] gap-6 xl:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(360px,520px)_minmax(0,1fr)] xl:grid-cols-[minmax(420px,560px)_minmax(0,1fr)] gap-6 xl:gap-8">
           
           <div className="space-y-6">
             <Card className="bg-slate-800/95 border border-slate-700/60 shadow-xl shadow-black/10 backdrop-blur-sm">
@@ -985,50 +1200,6 @@ export function RotacionDeportiva() {
             </Card>
 
 
-            <Card className="bg-slate-800/95 border border-slate-700/60 shadow-xl shadow-black/10 backdrop-blur-sm">
-                <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
-                    <AccordionItem value="item-1" className="border-b-0">
-                        <AccordionTrigger className="p-6 hover:no-underline">
-                            <div className="flex flex-col items-start w-full">
-                               <CardTitle className="flex items-center gap-2 text-sky-400"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
-                               <CardDescription className="text-slate-400 pt-2">Los jugadores se añaden a los equipos desde aquí.</CardDescription>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                           <CardContent className="px-6 pb-6 pt-0 space-y-2 max-h-[400px] overflow-y-auto">
-                                {waitingPlayers.length > 0 ? (
-                                    waitingPlayers.map((p, index) => (
-                                        <PlayerCard 
-                                            key={p.id} 
-                                            player={p}
-                                            turn={index + 1}
-                                            onAssign={index === 0 && !teamsAreFull ? handleAssignPlayerToTeam : undefined}
-                                            onRemove={handleRemovePlayer}
-                                            draggable={true}
-                                            onDragStart={(e) => handleDragStart(e, p.id)}
-                                            onDragEnter={(e) => handleDragEnter(e, p.id)}
-                                            onDragLeave={handleDragLeave}
-                                            onDragOver={handleDragOver}
-                                            onDrop={(e) => handleDrop(e, p.id)}
-                                            onDragEnd={handleDragEnd}
-                                            isDragging={draggedPlayerId === p.id}
-                                            isDraggingOver={dragOverPlayerId === p.id && draggedPlayerId !== p.id}
-                                            onEdit={handleOpenEditPlayer}
-                                            onMoveInWaitingList={handleMoveInWaitingList}
-                                            isFirstInList={index === 0}
-                                            isLastInList={index === waitingPlayers.length - 1}
-                                            justMoved={justMovedPlayerIds.has(p.id)}
-                                        />
-                                    ))
-                                ) : (
-                                    <p className="text-slate-500 text-center py-4">No hay jugadores en espera.</p>
-                                )}
-                            </CardContent>
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-            </Card>
-            
             <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="item-1" className="border-none">
                     <Card className={cn(
@@ -1115,9 +1286,53 @@ export function RotacionDeportiva() {
                     </Card>
                 </AccordionItem>
             </Accordion>
+
+            <Card className="bg-slate-800/95 border border-slate-700/60 shadow-xl shadow-black/10 backdrop-blur-sm">
+                <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
+                    <AccordionItem value="item-1" className="border-b-0">
+                        <AccordionTrigger className="p-6 hover:no-underline">
+                            <div className="flex flex-col items-start w-full">
+                               <CardTitle className="flex items-center gap-2 text-sky-400"><Users/> Lista de Espera ({waitingPlayers.length})</CardTitle>
+                               <CardDescription className="text-slate-400 pt-2">Los jugadores se añaden a los equipos desde aquí.</CardDescription>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                           <CardContent className="px-6 pb-6 pt-0 space-y-2 max-h-[400px] overflow-y-auto">
+                                {waitingPlayers.length > 0 ? (
+                                    waitingPlayers.map((p, index) => (
+                                        <PlayerCard 
+                                            key={p.id} 
+                                            player={p}
+                                            turn={index + 1}
+                                            onAssign={index === 0 && !teamsAreFull ? handleRequestAssignPlayerToTeam : undefined}
+                                            onRemove={handleRemovePlayer}
+                                            draggable={true}
+                                            onDragStart={(e) => handleDragStart(e, p.id)}
+                                            onDragEnter={(e) => handleDragEnter(e, p.id)}
+                                            onDragLeave={handleDragLeave}
+                                            onDragOver={handleDragOver}
+                                            onDrop={(e) => handleDrop(e, p.id)}
+                                            onDragEnd={handleDragEnd}
+                                            isDragging={draggedPlayerId === p.id}
+                                            isDraggingOver={dragOverPlayerId === p.id && draggedPlayerId !== p.id}
+                                            onEdit={handleOpenEditPlayer}
+                                            onMoveInWaitingList={handleMoveInWaitingList}
+                                            isFirstInList={index === 0}
+                                            isLastInList={index === waitingPlayers.length - 1}
+                                            justMoved={justMovedPlayerIds.has(p.id)}
+                                        />
+                                    ))
+                                ) : (
+                                    <p className="text-slate-500 text-center py-4">No hay jugadores en espera.</p>
+                                )}
+                            </CardContent>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            </Card>
           </div>
 
-          <div className="lg:col-span-2 space-y-8">
+          <div className="space-y-8">
             <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
                     <CardTitle className="text-3xl text-sky-400">{championsTeam ? "Partido Interino" : "Equipos Actuales"}</CardTitle>
@@ -1130,10 +1345,10 @@ export function RotacionDeportiva() {
                             <TabsTrigger value="team-b">{teamB.name}</TabsTrigger>
                         </TabsList>
                         <TabsContent value="team-a">
-                            <TeamColumn team={teamA} swapTeam="A" onRemovePlayer={handleRemoveFromTeam} onEditPlayer={handleOpenEditPlayer} onSwapPlayer={handleStartSwap} />
+                            <TeamColumn team={teamA} swapTeam="A" onRemovePlayer={handleRemoveFromTeam} onEditPlayer={handleOpenEditPlayer} onSwapPlayer={handleStartSwap} teamType="A" />
                         </TabsContent>
                         <TabsContent value="team-b">
-                            <TeamColumn team={teamB} swapTeam="B" onRemovePlayer={handleRemoveFromTeam} onEditPlayer={handleOpenEditPlayer} onSwapPlayer={handleStartSwap} />
+                            <TeamColumn team={teamB} swapTeam="B" onRemovePlayer={handleRemoveFromTeam} onEditPlayer={handleOpenEditPlayer} onSwapPlayer={handleStartSwap} teamType="B" />
                         </TabsContent>
                     </Tabs>
 
@@ -1141,16 +1356,26 @@ export function RotacionDeportiva() {
 
                     <div className="text-center space-y-4">
                         <h3 className="text-2xl text-sky-400">Registrar Resultado del Partido</h3>
-                        <div className="flex flex-wrap justify-center gap-4">
-                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('A')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
+                        <div className="flex flex-col gap-3">
+                          {matchStatus && (
+                            <div role="status" aria-live="polite" className={cn(
+                              "rounded-3xl border px-4 py-3 text-sm font-medium",
+                              matchStatus.type === 'champion' ? 'bg-emerald-500/10 border-emerald-400 text-emerald-100' : matchStatus.type === 'duel' ? 'bg-sky-500/10 border-sky-400 text-sky-100' : 'bg-slate-900/80 border-slate-700 text-slate-100'
+                            )}>
+                              {matchStatus.message}
+                            </div>
+                          )}
+                          <div className="flex flex-wrap justify-center gap-4">
+                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none transition-transform duration-200 hover:-translate-y-0.5" onClick={() => handleRecordWin('A')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
                                 <Trophy className="mr-2 h-4 w-4"/> Ganó {teamA.name}
                             </Button>
-                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={() => handleRecordWin('B')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
+                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none transition-transform duration-200 hover:-translate-y-0.5" onClick={() => handleRecordWin('B')} disabled={teamA.players.length < 5 || teamB.players.length < 5}>
                                 <Trophy className="mr-2 h-4 w-4"/> Ganó {teamB.name}
                             </Button>
+                          </div>
                         </div>
                          <div className="pt-4">
-                            <Card className="bg-slate-800 border-slate-700 max-w-sm mx-auto">
+                            <Card className="bg-slate-800 border-slate-700 w-full max-w-2xl mx-auto">
                               <CardHeader>
                                   <CardTitle className="flex items-center gap-2 text-sky-400">Acciones del Día</CardTitle>
                               </CardHeader>
@@ -1158,16 +1383,12 @@ export function RotacionDeportiva() {
                                 <div className="flex flex-col sm:flex-row gap-2">
                                   <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
                                       <DialogTrigger asChild>
-                                          <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+                                          <Button className="w-full sm:flex-1 bg-indigo-600 hover:bg-indigo-700 text-white">
                                               <Newspaper className="mr-2 h-4 w-4"/>
                                               Finalizar el Día y Ver Resumen
                                           </Button>
                                       </DialogTrigger>
-                                      <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white" onClick={handleUndo} disabled={undoStack.length === 0}>
-                                          <History className="mr-2 h-4 w-4"/>
-                                          Deshacer Última Acción
-                                      </Button>
-                                       <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
+                                      <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-slate-100">
                                           <DialogHeader>
                                               <DialogTitle className="text-sky-400 text-2xl">Resumen del Día</DialogTitle>
                                               <DialogDescription className="text-slate-400">
@@ -1224,6 +1445,10 @@ export function RotacionDeportiva() {
                                           </DialogFooter>
                                       </DialogContent>
                                   </Dialog>
+                                  <Button className="w-full sm:flex-1 bg-orange-600 hover:bg-orange-700 text-white" onClick={handleUndo} disabled={undoStack.length === 0}>
+                                      <History className="mr-2 h-4 w-4"/>
+                                      Deshacer Última Acción
+                                  </Button>
                                 </div>
                               </CardContent>
                             </Card>
