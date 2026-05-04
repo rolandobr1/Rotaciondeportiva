@@ -12,7 +12,7 @@ type AppState = {
   teamA: Team;
   teamB: Team;
   championsTeam: Team | null;
-  winsToChampion: number;
+  winsToChampion: number | string;
   savedWaitingList: string[] | null;
   savedPlayers: Player[] | null;
 };
@@ -108,9 +108,13 @@ export function RotacionDeportiva() {
 
   const [draggedPlayerId, setDraggedPlayerId] = useState<string | null>(null);
   const [dragOverPlayerId, setDragOverPlayerId] = useState<string | null>(null);
+  const draggedPlayerIdRef = useRef<string | null>(null);
+  const dragOverPlayerIdRef = useRef<string | null>(null);
 
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editedPlayerName, setEditedPlayerName] = useState('');
+  const [swapSource, setSwapSource] = useState<{ playerId: string; team: 'A' | 'B'; name: string } | null>(null);
+  const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
 
   const [savedWaitingList, setSavedWaitingList] = useState<string[] | null>(null);
   const [savedPlayers, setSavedPlayers] = useState<Player[] | null>(null);
@@ -257,26 +261,6 @@ export function RotacionDeportiva() {
     }
   }, [waitingListIds, prevWaitingListIds]);
   
-  const handleSaveWaitingList = useCallback((silent: boolean = false) => {
-    setSavedPlayers([...players]);
-    setSavedWaitingList([...waitingListIds]);
-    if (!silent) {
-      toast({
-          title: "Lista de Espera Guardada",
-          description: "Se ha guardado una instantánea del estado actual de los jugadores.",
-      });
-    }
-  }, [players, waitingListIds, toast]);
-
-  useEffect(() => {
-    if (isLoaded && prevWaitingListLength !== undefined && waitingListIds.length > prevWaitingListLength) {
-      if (waitingListIds.length > 10) {
-        handleSaveWaitingList(true); // Auto-save silently
-      }
-    }
-  }, [isLoaded, waitingListIds.length, prevWaitingListLength, handleSaveWaitingList]);
-
-
   const waitingPlayers = useMemo(() => {
       const playerMap = new Map(players.map(p => [p.id, p]));
       return waitingListIds
@@ -402,8 +386,12 @@ export function RotacionDeportiva() {
 
     if (newPlayers.length > 0) {
         const newPlayerIds = newPlayers.map(p => p.id);
-        setPlayers(prev => [...prev, ...newPlayers]);
-        setWaitingListIds(prev => [...prev, ...newPlayerIds]);
+        const updatedPlayers = [...players, ...newPlayers];
+        const updatedWaitingList = [...waitingListIds, ...newPlayerIds];
+        setPlayers(updatedPlayers);
+        setWaitingListIds(updatedWaitingList);
+        setSavedPlayers(updatedPlayers);
+        setSavedWaitingList(updatedWaitingList);
         toast({
             title: `${newPlayers.length > 1 ? 'Jugadores Añadidos' : 'Jugador Añadido'}`,
             description: `${addedNames.join(', ')} está(n) en la lista de espera.`
@@ -570,35 +558,47 @@ export function RotacionDeportiva() {
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, playerId: string) => {
       e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', playerId);
+      draggedPlayerIdRef.current = playerId;
       setDraggedPlayerId(playerId);
+      setDragOverPlayerId(null);
   };
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>, targetPlayerId: string) => {
       e.preventDefault();
-      if (draggedPlayerId && draggedPlayerId !== targetPlayerId) {
+      const currentDraggedId = draggedPlayerIdRef.current;
+      if (currentDraggedId && currentDraggedId !== targetPlayerId) {
+          dragOverPlayerIdRef.current = targetPlayerId;
           setDragOverPlayerId(targetPlayerId);
       }
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
+      const related = e.relatedTarget as Node | null;
+      if (related && e.currentTarget.contains(related)) {
+          return;
+      }
+      dragOverPlayerIdRef.current = null;
       setDragOverPlayerId(null);
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetPlayerId: string) => {
       e.preventDefault();
-      if (!draggedPlayerId || draggedPlayerId === targetPlayerId) {
+      const currentDraggedId = draggedPlayerIdRef.current || e.dataTransfer.getData('text/plain');
+      if (!currentDraggedId || currentDraggedId === targetPlayerId) {
           handleDragEnd();
           return;
       }
 
       setWaitingListIds(prevIds => {
           const newIds = [...prevIds];
-          const draggedIndex = newIds.indexOf(draggedPlayerId);
+          const draggedIndex = newIds.indexOf(currentDraggedId);
           const targetIndex = newIds.indexOf(targetPlayerId);
 
           if (draggedIndex === -1 || targetIndex === -1) {
@@ -607,7 +607,6 @@ export function RotacionDeportiva() {
 
           const [draggedItem] = newIds.splice(draggedIndex, 1);
           newIds.splice(targetIndex, 0, draggedItem);
-          
           return newIds;
       });
 
@@ -615,6 +614,8 @@ export function RotacionDeportiva() {
   };
 
   const handleDragEnd = () => {
+      draggedPlayerIdRef.current = null;
+      dragOverPlayerIdRef.current = null;
       setDraggedPlayerId(null);
       setDragOverPlayerId(null);
   };
@@ -752,45 +753,16 @@ export function RotacionDeportiva() {
     setChampionsTeam(null);
   };
 
-  const handleRestoreWaitingList = () => {
-    if (!savedPlayers || !savedWaitingList) {
-        toast({
-            variant: "destructive",
-            title: "No hay nada que restaurar",
-            description: "Primero debes guardar una instantánea de la lista de espera.",
-        });
-        return;
-    }
-
-    const allCurrentPlayerIds = new Set(players.map(p => p.id));
-    const restoredPlayers = [...savedPlayers];
-    
-    // Add players that exist in current state but not in saved state
-    players.forEach(p => {
-        if (!restoredPlayers.some(sp => sp.id === p.id)) {
-            restoredPlayers.push(p);
-        }
-    });
-
-    const restoredWaitingListIds = [...savedWaitingList];
-    
-    // Add any player that is not in any team and not in the waiting list
-    restoredPlayers.forEach(p => {
-        const isInTeam = teamA.players.some(ap => ap.id === p.id) || teamB.players.some(bp => bp.id === p.id) || (championsTeam && championsTeam.players.some(cp => cp.id === p.id));
-        if (!isInTeam && !restoredWaitingListIds.includes(p.id)) {
-            restoredWaitingListIds.push(p.id);
-        }
-    });
-
-    setPlayers(restoredPlayers);
-    setWaitingListIds(restoredWaitingListIds);
+  const handleResetList = () => {
+    const sortedByCreatedAt = [...players].sort((a, b) => a.createdAt - b.createdAt).map(p => p.id);
     setTeamA({ name: 'Equipo A', players: [] });
     setTeamB({ name: 'Equipo B', players: [] });
     setChampionsTeam(null);
+    setWaitingListIds(sortedByCreatedAt);
 
     toast({
-        title: "Lista de Espera Restaurada",
-        description: "Se ha restaurado la instantánea guardada. Todos los jugadores están en espera.",
+      title: "Lista reiniciada",
+      description: "Todos los jugadores regresan a la lista de espera en el orden en que fueron agregados.",
     });
   };
 
@@ -850,11 +822,69 @@ export function RotacionDeportiva() {
       setEditedPlayerName('');
   };
 
+  const handleStartSwap = (playerId: string, team: 'A' | 'B') => {
+      const sourcePlayers = team === 'A' ? teamA.players : teamB.players;
+      const targetPlayers = team === 'A' ? teamB.players : teamA.players;
+      const sourcePlayer = sourcePlayers.find(p => p.id === playerId);
+
+      if (!sourcePlayer) return;
+      if (targetPlayers.length === 0) {
+          toast({
+              variant: 'destructive',
+              title: 'No hay jugadores disponibles',
+              description: `No hay jugadores en el equipo contrario para intercambiar con ${sourcePlayer.name}.`
+          });
+          return;
+      }
+
+      setSwapSource({ playerId, team, name: sourcePlayer.name });
+      setIsSwapDialogOpen(true);
+  };
+
+  const handleConfirmSwap = (targetPlayerId: string) => {
+      if (!swapSource) return;
+      const sourceTeam = swapSource.team === 'A' ? teamA : teamB;
+      const targetTeam = swapSource.team === 'A' ? teamB : teamA;
+      const sourcePlayer = sourceTeam.players.find(p => p.id === swapSource.playerId);
+      const targetPlayer = targetTeam.players.find(p => p.id === targetPlayerId);
+
+      if (!sourcePlayer || !targetPlayer) {
+          setSwapSource(null);
+          setIsSwapDialogOpen(false);
+          return;
+      }
+
+      saveStateForUndo();
+      const newSourcePlayers = sourceTeam.players.map(p => p.id === sourcePlayer.id ? targetPlayer : p);
+      const newTargetPlayers = targetTeam.players.map(p => p.id === targetPlayer.id ? sourcePlayer : p);
+
+      if (swapSource.team === 'A') {
+          setTeamA({ name: deriveTeamName(newSourcePlayers, teamA.name), players: newSourcePlayers });
+          setTeamB({ name: deriveTeamName(newTargetPlayers, teamB.name), players: newTargetPlayers });
+      } else {
+          setTeamA({ name: deriveTeamName(newTargetPlayers, teamA.name), players: newTargetPlayers });
+          setTeamB({ name: deriveTeamName(newSourcePlayers, teamB.name), players: newSourcePlayers });
+      }
+
+      toast({
+          title: 'Intercambio realizado',
+          description: `${sourcePlayer.name} y ${targetPlayer.name} han cambiado de equipo.`
+      });
+
+      setSwapSource(null);
+      setIsSwapDialogOpen(false);
+  };
+
+  const handleCancelSwap = () => {
+      setSwapSource(null);
+      setIsSwapDialogOpen(false);
+  };
+
   const teamsAreFull = teamA.players.length >= 5 && teamB.players.length >= 5;
 
   if (!isLoaded) {
       return (
-          <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-2 sm:p-4 flex items-center justify-center">
+          <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100 px-3 py-4 sm:px-5 sm:py-6 flex items-center justify-center">
               <div className="text-center">
                   <h1 className="font-bold text-5xl text-sky-400">Cargando...</h1>
               </div>
@@ -863,8 +893,8 @@ export function RotacionDeportiva() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-2 sm:p-4">
-      <main className="w-full max-w-7xl mx-auto">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100 px-3 py-4 sm:px-5 sm:py-6">
+      <main className="w-full max-w-[1800px] min-w-0 mx-auto pb-28">
         <AlertDialog open={isConfirmDisableChampionsOpen} onOpenChange={setIsConfirmDisableChampionsOpen}>
             <AlertDialogContent className="bg-slate-800 border-slate-700">
                 <AlertDialogHeader>
@@ -906,21 +936,40 @@ export function RotacionDeportiva() {
             </DialogContent>
         </Dialog>
 
+        <Dialog open={isSwapDialogOpen} onOpenChange={(isOpen) => !isOpen && handleCancelSwap()}>
+            <DialogContent className="bg-slate-800 border-slate-700">
+                <DialogHeader>
+                    <DialogTitle className="text-sky-400">Intercambio entre equipos</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <p className="text-slate-400">
+                        Selecciona un jugador del equipo {swapSource?.team === 'A' ? teamB.name : teamA.name} para intercambiar con <span className="font-semibold text-white">{swapSource?.name}</span>.
+                    </p>
+                    {(swapSource?.team === 'A' ? teamB.players : teamA.players).map((player) => (
+                        <Button key={player.id} variant="outline" className="w-full justify-between" onClick={() => handleConfirmSwap(player.id)}>
+                            <span>{player.name}</span>
+                            <span className="text-slate-400">↔</span>
+                        </Button>
+                    ))}
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={handleCancelSwap}>Cancelar</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
-        <header className="text-center mb-8">
-            <h1 className="font-bold text-3xl sm:text-4xl text-sky-400 flex items-center justify-center gap-4 whitespace-nowrap">
-                <img src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" className="h-8 w-8 sm:h-10 md:h-12"/>
-                Rotación Deportiva V2.0
-            </h1>
-            <p className="text-slate-400 mt-2">Gestión de equipos para partidos amistosos</p>
+        <header className="mb-6">
+            <div className="flex items-center justify-start gap-3 rounded-[1.75rem] border border-slate-700/50 bg-slate-950/80 px-4 py-3 shadow-2xl shadow-black/20 backdrop-blur-xl sm:px-6">
+              <img src="/bluerotationicon.png" alt="Icono de Rotación Deportiva" className="h-9 w-9 sm:h-10 sm:w-10" />
+            </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(320px,420px)_1fr] gap-6 xl:gap-8">
           
-          <div className="lg:col-span-1 space-y-8">
-            <Card className="bg-slate-800 border-slate-700">
+          <div className="space-y-6">
+            <Card className="bg-slate-800/95 border border-slate-700/60 shadow-xl shadow-black/10 backdrop-blur-sm">
               <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sky-400"><Plus/> Añadir Nuevo Jugador</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-sky-300"><Plus/> Añadir Nuevo Jugador</CardTitle>
               </CardHeader>
               <CardContent>
                   <div className="flex flex-col gap-2">
@@ -930,30 +979,13 @@ export function RotacionDeportiva() {
                       onChange={(e) => setNewPlayerName(e.target.value)}
                       className="bg-slate-700 border-slate-600 placeholder:text-slate-500"
                     />
-                    <Button onClick={handleAddPlayer} className="bg-sky-600 hover:bg-sky-700 text-white">Añadir</Button>
+                            <Button size="lg" onClick={handleAddPlayer} className="bg-sky-600 hover:bg-sky-700 text-white rounded-2xl">Añadir</Button>
                   </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-sky-400"><ListChecks /> Acciones de Lista</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                        <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700" onClick={() => handleSaveWaitingList(false)}>
-                            <Save className="mr-2 h-4 w-4" />
-                            Guardar Lista
-                        </Button>
-                        <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700" onClick={handleRestoreWaitingList}>
-                            <History className="mr-2 h-4 w-4" />
-                            Restaurar Lista
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
 
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-slate-800/95 border border-slate-700/60 shadow-xl shadow-black/10 backdrop-blur-sm">
                 <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
                     <AccordionItem value="item-1" className="border-b-0">
                         <AccordionTrigger className="p-6 hover:no-underline">
@@ -1098,10 +1130,10 @@ export function RotacionDeportiva() {
                             <TabsTrigger value="team-b">{teamB.name}</TabsTrigger>
                         </TabsList>
                         <TabsContent value="team-a">
-                            <TeamColumn team={teamA} onRemovePlayer={handleRemoveFromTeam} onEditPlayer={handleOpenEditPlayer} />
+                            <TeamColumn team={teamA} swapTeam="A" onRemovePlayer={handleRemoveFromTeam} onEditPlayer={handleOpenEditPlayer} onSwapPlayer={handleStartSwap} />
                         </TabsContent>
                         <TabsContent value="team-b">
-                            <TeamColumn team={teamB} onRemovePlayer={handleRemoveFromTeam} onEditPlayer={handleOpenEditPlayer}/>
+                            <TeamColumn team={teamB} swapTeam="B" onRemovePlayer={handleRemoveFromTeam} onEditPlayer={handleOpenEditPlayer} onSwapPlayer={handleStartSwap} />
                         </TabsContent>
                     </Tabs>
 
@@ -1163,11 +1195,14 @@ export function RotacionDeportiva() {
                                             </div>
                                           </ScrollArea>
                                           <DialogFooter id="summary-dialog-footer" className="sm:justify-between gap-2 mt-4 flex-col-reverse sm:flex-row">
+                                            <Button type="button" variant="secondary" onClick={handleResetList} className="w-full sm:w-auto">
+                                                Reiniciar Lista
+                                            </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button variant="destructive" className="w-full sm:w-auto">
                                                         <RefreshCw className="mr-2 h-4 w-4"/>
-                                                        Reiniciar Todo
+                                                        Finalizar Día
                                                     </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent className="bg-slate-800 border-slate-700">
@@ -1179,7 +1214,7 @@ export function RotacionDeportiva() {
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
                                                         <AlertDialogCancel className="border-slate-600 hover:bg-slate-700">Cancelar</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={handleResetDay} className="bg-destructive hover:bg-red-700">Sí, reiniciar</AlertDialogAction>
+                                                        <AlertDialogAction onClick={handleResetDay} className="bg-destructive hover:bg-red-700">Sí, finalizar</AlertDialogAction>
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
@@ -1199,6 +1234,19 @@ export function RotacionDeportiva() {
           </div>
         </div>
       </main>
+      <div className="fixed inset-x-0 bottom-0 z-40 block sm:hidden">
+        <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between gap-2 border-t border-slate-800/70 bg-slate-950/95 px-4 py-3 shadow-[0_-12px_30px_-16px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+          <Button size="sm" variant="secondary" className="flex-1 rounded-2xl" onClick={() => setIsSummaryOpen(true)}>
+            Resumen
+          </Button>
+          <Button size="sm" variant="ghost" className="flex-1 rounded-2xl" onClick={handleUndo} disabled={undoStack.length === 0}>
+            Deshacer
+          </Button>
+          <Button size="sm" variant="outline" className="flex-1 rounded-2xl" onClick={handleResetList}>
+            Reiniciar
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@ interface PlayerCardProps {
   player: Player;
   onRemove?: (id: string) => void;
   onAssign?: (id: string, team: 'A' | 'B') => void;
+  onSwap?: (id: string) => void;
   isChampion?: boolean;
   turn?: number;
   draggable?: boolean;
@@ -33,6 +34,7 @@ export const PlayerCard = React.memo(({
   player,
   onRemove,
   onAssign,
+  onSwap,
   isChampion,
   turn,
   draggable,
@@ -59,19 +61,19 @@ export const PlayerCard = React.memo(({
     onDrop={onDrop}
     onDragEnd={onDragEnd}
     className={cn(
-      "relative flex items-center justify-between p-3 rounded-lg shadow-sm transition-colors duration-1000 ease-out hover:shadow-md",
-      isChampion ? "bg-amber-500" : justMoved ? "bg-sky-600" : "bg-slate-700",
-      draggable && "cursor-move",
+      "relative min-w-0 flex items-center justify-between gap-3 rounded-2xl border border-slate-700/40 bg-slate-800/95 p-3 shadow-xl shadow-black/10 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-2xl",
+      isChampion ? "bg-amber-500/95 text-slate-950" : justMoved ? "bg-sky-600/95" : "bg-slate-700/95",
+      draggable && "cursor-grab",
       isDragging && "opacity-50",
       isDraggingOver && "ring-2 ring-sky-400"
     )}
     aria-label={`Jugador ${player.name}`}
   >
-    <div className="flex items-center gap-3 overflow-hidden">
+    <div className="flex min-w-0 items-center gap-3 overflow-hidden">
       {draggable && <GripVertical className="h-5 w-5 text-slate-400 shrink-0" />}
-      <div className="overflow-hidden">
-        <div className="flex items-center gap-2">
-          <p className={cn("font-bold sm:truncate", isChampion ? "text-black" : "text-sky-400")}>
+      <div className="min-w-0 overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className={cn("font-semibold sm:truncate", isChampion ? "text-slate-950" : "text-sky-300")}>
             {turn && <span className="mr-2 text-slate-400 font-normal">{turn}.</span>}
             {player.name}
           </p>
@@ -82,7 +84,7 @@ export const PlayerCard = React.memo(({
           )}
         </div>
         <p className={cn("text-xs sm:truncate", isChampion ? "text-slate-800" : "text-slate-400")}>
-          V/D: {player.wins}/{player.losses} | Tasa de Victorias: {(player.winRate * 100).toFixed(0)}% | Racha: <span className={cn("font-bold", player.consecutiveWins > 0 ? (isChampion ? 'text-white' : 'text-amber-400') : '')}>{player.consecutiveWins}</span>
+          V/D: {player.wins}/{player.losses} | Racha: <span className={cn("font-bold", player.consecutiveWins > 0 ? (isChampion ? 'text-white' : 'text-amber-400') : '')}>{player.consecutiveWins}</span>
         </p>
       </div>
     </div>
@@ -92,6 +94,11 @@ export const PlayerCard = React.memo(({
           <Button size="icon" variant="ghost" className="h-7 w-7 font-bold text-sky-400 hover:bg-sky-600 hover:text-white" onClick={() => onAssign(player.id, 'A')} aria-label={`Asignar ${player.name} al Equipo A`}>A</Button>
           <Button size="icon" variant="ghost" className="h-7 w-7 font-bold text-amber-400 hover:bg-amber-500 hover:text-white" onClick={() => onAssign(player.id, 'B')} aria-label={`Asignar ${player.name} al Equipo B`}>B</Button>
         </div>
+      )}
+      {onSwap && (
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-400 hover:bg-slate-700 hover:text-white" onClick={() => onSwap(player.id)} aria-label={`Intercambiar ${player.name}`}>
+          <span className="text-base">↔</span>
+        </Button>
       )}
       {onMoveInWaitingList && (
         <div className="flex items-center">
