@@ -7,6 +7,8 @@ import { Swords } from 'lucide-react';
 import { PlayerCard } from './PlayerCard';
 import { cn } from '@/lib/utils';
 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 interface TeamColumnProps {
   team: Team;
   swapTeam: 'A' | 'B';
@@ -25,38 +27,46 @@ export const TeamColumn = React.memo(({ team, swapTeam, onRemovePlayer, onEditPl
 
   return (
     <Card className={cn(
-      "flex-1 min-w-0 bg-slate-800/90 border border-slate-700/70 shadow-xl shadow-black/10 backdrop-blur-sm",
+      "flex-1 min-w-0 bg-slate-800/90 border border-slate-700/70 shadow-xl shadow-black/10 backdrop-blur-sm p-0 overflow-hidden",
       teamType === 'A' ? "border-sky-500/50" : "border-orange-500/50"
     )}>
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle className={cn(
-            "flex items-center gap-2 text-2xl",
-            teamType === 'A' ? "text-sky-300" : "text-orange-300"
-          )}>
-            <Swords /> {team.name}
-          </CardTitle>
-          <span className="rounded-full bg-slate-700/80 px-3 py-1 text-xs uppercase tracking-[0.15em] text-slate-300">
-            {team.players.length}/5
-          </span>
-        </div>
-        <CardDescription className="text-slate-400">Tasa de Vic. Prom.: {(avgWinRate * 100).toFixed(0)}%</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {team.players.length > 0 ? (
-          team.players.map(p => (
-            <PlayerCard
-              key={p.id}
-              player={p}
-              onRemove={() => onRemovePlayer(p.id)}
-              onEdit={onEditPlayer}
-              onSwap={onSwapPlayer ? () => onSwapPlayer(p.id, swapTeam) : undefined}
-            />
-          ))
-        ) : (
-          <div className="text-center text-slate-500 py-8">Añade jugadores a este equipo</div>
-        )}
-      </CardContent>
+      <Accordion type="single" collapsible defaultValue="players" className="w-full">
+        <AccordionItem value="players" className="border-none">
+          <AccordionTrigger className="p-6 hover:no-underline [&[data-state=open]>div>div>svg]:rotate-180">
+            <div className="flex flex-col items-start w-full text-left">
+              <div className="flex items-center justify-between w-full pr-4">
+                <CardTitle className={cn(
+                  "flex items-center gap-2 text-2xl",
+                  teamType === 'A' ? "text-sky-300" : "text-orange-300"
+                )}>
+                  <Swords /> {team.name}
+                </CardTitle>
+                <span className="rounded-full bg-slate-700/80 px-3 py-1 text-xs uppercase tracking-[0.15em] text-slate-300">
+                  {team.players.length}/5
+                </span>
+              </div>
+              <CardDescription className="text-slate-400 mt-1">Tasa de Vic. Prom.: {(avgWinRate * 100).toFixed(0)}%</CardDescription>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <CardContent className="space-y-2 pt-0">
+              {team.players.length > 0 ? (
+                team.players.map(p => (
+                  <PlayerCard
+                    key={p.id}
+                    player={p}
+                    onRemove={() => onRemovePlayer(p.id)}
+                    onEdit={onEditPlayer}
+                    onSwap={onSwapPlayer ? () => onSwapPlayer(p.id, swapTeam) : undefined}
+                  />
+                ))
+              ) : (
+                <div className="text-center text-slate-500 py-8">Añade jugadores a este equipo</div>
+              )}
+            </CardContent>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </Card>
   );
-});
+});

@@ -90,10 +90,24 @@ export const PlayerCard = React.memo(({
             </Button>
           )}
         </div>
-        <p className={cn("text-xs flex gap-2", isChampion ? "text-slate-800" : "text-slate-400")}>
-          <span className="bg-slate-700 px-2 py-1 rounded text-xs">V: {player.wins}</span>
-          <span className="bg-slate-700 px-2 py-1 rounded text-xs">D: {player.losses}</span>
-          <span className={cn("px-2 py-1 rounded text-xs font-bold", player.consecutiveWins > 0 ? (isChampion ? 'bg-white text-slate-950' : 'bg-amber-500 text-slate-950') : 'bg-slate-700')}>R: {player.consecutiveWins}</span>
+        <p className={cn("text-xs flex gap-2 font-medium mt-1.5", isChampion ? "text-slate-900" : "text-slate-400")}>
+          <span className={cn("px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border", 
+            isChampion ? "bg-emerald-600/20 border-emerald-600/30 text-emerald-900" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+          )}>
+            V: {player.wins}
+          </span>
+          <span className={cn("px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border", 
+            isChampion ? "bg-rose-600/20 border-rose-600/30 text-rose-900" : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+          )}>
+            D: {player.losses}
+          </span>
+          <span className={cn("px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border", 
+            player.consecutiveWins > 0 
+              ? (isChampion ? 'bg-white border-white text-slate-950 shadow-sm' : 'bg-amber-500/20 border-amber-500/30 text-amber-400') 
+              : (isChampion ? 'bg-slate-900/10 border-slate-900/10 text-slate-800' : 'bg-slate-700 border-slate-600 text-slate-400')
+          )}>
+            R: {player.consecutiveWins}
+          </span>
         </p>
       </div>
     </div>
